@@ -1,38 +1,41 @@
 class GrammarBase {
-  private rules: Map<NT, Set<Sym[]>>
+  private rules: Map<NT, Sym[][]>
   start?: NT
 
   constructor(ruleEntries: readonly [NT, Sym[][]][] = []) {
-    this.rules = new Map(ruleEntries.map(([nt, rhs]) => {
-      return [nt, new Set(rhs)]
-    }))
+    this.rules = new Map(ruleEntries)
     this.start = ruleEntries[0]?.[0]
   }
 
   get alphabet() {
-    return this.calcAlphabet()
+    return new Set(this.alphabetIter())
   }
 
-  calcAlphabet() {
+  * alphabetIter() {
     const set = new Set<Sym>()
     for (const [nt, rhs] of this.rules) {
-      set.add(nt)
+      if (!set.has(nt)) {
+        yield nt
+        set.add(nt)
+      }
       for (const seq of rhs) {
         for (const sym of seq) {
-          set.add(sym)
+          if (!set.has(sym)) {
+            yield sym
+            set.add(sym)
+          }
         }
       }
     }
-    return set;
   }
 
   get nonTerms() {
     console.log('in base')
-    return this.calcNonTerms()
+    return new Set(this.nonTermIter())
   }
 
-  calcNonTerms() {
-    return new Set(this.rules.keys())
+  nonTermIter() {
+    return this.rules.keys()
   }
 
   isNonTerm(sym: Sym) {
@@ -40,12 +43,14 @@ class GrammarBase {
   }
 
   get terms() {
-    return this.calcTerms()
+    return new Set(this.termIter())
   }
 
-  calcTerms() {
-    const arr = [...(this.alphabet)].filter(sym => !this.nonTerms.has(sym))
-    return new Set(arr)
+  * termIter() {
+    for (const sym of this.alphabetIter()) {
+      if (!this.isNonTerm(sym))
+        yield sym
+    }
   }
 
   isTerm(sym: Sym) {
@@ -54,25 +59,41 @@ class GrammarBase {
 
   calcFirst() {
     const first = new Map<Sym, Set<Sym>>()
+    const dep = new Map<Sym, Set<Sym>>()
+    for (const nt of this.nonTermIter()) {
+      first.set(nt, new Set())
+      dep.set(nt, new Set())
+    }
+    for (const [nt, rhs] of this.rules) {
+      for (const seq of rhs) {
+        for (const sym of seq) {
+
+        }
+      }
+    }
+  }
+
+  isEmpty() {
+    return this.rules.size == 0
   }
 }
 
 class Grammar extends GrammarBase {
-  _alphabet?: Set<Sym>
-  _nonTerms?: Set<Sym>
-  _terms?: Set<Sym>
+  private _alphabet?: Set<Sym>
+  private _nonTerms?: Set<Sym>
+  private _terms?: Set<Sym>
 
   get alphabet() {
-    return this._alphabet ??= this.calcAlphabet()
+    return this._alphabet ??= super.alphabet
   }
 
   get nonTerms() {
     console.log('in extend')
-    return this._nonTerms ??= this.calcNonTerms()
+    return this._nonTerms ??= super.nonTerms
   }
 
   get terms() {
-    return this._terms ??= this.calcTerms()
+    return this._terms ??= super.terms
   }
 
   protected invalidCache() {
@@ -81,10 +102,12 @@ class Grammar extends GrammarBase {
 }
 
 const grammar = new Grammar([
+  ['D', [['E']]],
+  ['F', [['TE']]],
   ['E', [['T', '+', 'E'], ['T', '-', 'E'], ['']]]
 ]);
 
-grammar.isNonTerm('E')
+console.log(grammar.calcEpsilonProducers())
 
 type Sym = string
 type NT = Sym
