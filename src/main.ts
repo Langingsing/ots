@@ -1,5 +1,7 @@
+
+
 class GrammarBase {
-  private rules: Map<NT, Sym[][]>
+  private readonly rules: Map<NT, Sym[][]>
   start?: NT
 
   constructor(ruleEntries: readonly [NT, Sym[][]][] = []) {
@@ -71,6 +73,58 @@ class GrammarBase {
         }
       }
     }
+  }
+
+  calcEpsilonProducers() {
+    const producers = new Set<NT>()
+    if (this.isEmpty()) {
+      return producers
+    }
+    const indexStack: [NT, number, number][] = [[this.start!, 0, 0]]
+    const dep = new Map<Sym, Set<Sym>>()
+    Object.defineProperty(dep, 'notify', {
+      value(nt: NT) {
+      }
+    })
+    // for (const nt of this.nonTermIter())
+    while (indexStack.length) {
+      const [nt, i, j] = indexStack.at(-1)!
+      const sym = this.rules.get(nt)![i][j]
+      if (sym == '') {
+        producers.add(nt)
+        // no circuit
+        // notify
+      } else if (this.isTerm(sym)) {
+        indexStack.pop()
+      } else {
+        // is non-terminal
+        // subscribe
+
+      }
+    }
+    for (const [nt, rhs] of this.rules) {
+      dep.set(nt, new Set())
+      // for (const seq of rhs) {
+      //   for (const sym of seq) {
+      //   }
+      // }
+
+      // `some` and `every` act as control flow
+      rhs.some(seq => seq.every(sym => {
+        if (sym == '') {
+          producers.add(nt)
+          // no circuit
+          // notify
+          return true
+        }
+        if (this.isTerm(sym)) {
+          return false
+        }
+        // is non-terminal
+        return producers.has(sym)
+      }))
+    }
+    return undefined
   }
 
   isEmpty() {
