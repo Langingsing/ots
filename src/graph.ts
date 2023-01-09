@@ -1,4 +1,7 @@
-export class Graph<T> extends Map<T, T[]> {
+/**
+ * directed graph
+ * */
+export class Graph<T> extends Map<T, Iterable<T>> {
   * iter(start: T) {
     const met = new Set<T>()
     const stack = [start]

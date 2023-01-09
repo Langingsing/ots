@@ -1,4 +1,4 @@
-
+import {Graph} from "./graph.js"
 
 class GrammarBase {
   private readonly rules: Map<NT, Sym[][]>
@@ -81,7 +81,7 @@ class GrammarBase {
       return producers
     }
     const indexStack: [NT, number, number][] = [[this.start!, 0, 0]]
-    const dep = new Map<Sym, Set<Sym>>()
+    const dep = new Graph<Sym>()
     Object.defineProperty(dep, 'notify', {
       value(nt: NT) {
       }
