@@ -108,15 +108,16 @@ class GrammarBase {
       const sym = seq[symIdx]!
 
       if (sym == '') {
-        producers.add(nt)
         // todo: check no circuit
+        // increase index[2] which represents symIdx
+        index[2]++
 
         // notify
-        // increase depIndex[2] which represents symIdx
-        dep.get(nt)?.forEach(depIndex => depIndex[2]++)
-
-        indexStack.pop()
-      } else if (this.isTerm(sym)) {
+        dep.get(nt)?.forEach(depIndex => {
+          // increase depIndex[2] which represents symIdx
+          depIndex[2]++
+        })
+      } else if (this.isTerm(sym) || nonEmptyProducers.has(sym)) {
         // replace the stack top with an index for next seq
 
         // increase index[1] which represents seqIdx
@@ -126,18 +127,16 @@ class GrammarBase {
       } else {
         // here `sym` is non-terminal
 
-        if (!producers.has(sym)) {
-          // subscribe in `dep`
-          if (!dep.has(sym)) {
-            dep.set(sym, [])
-          }
-          const list = dep.get(sym)!
-          list.push(index)
-
-          // push a new index for `sym` to stack
-          const ntIndex: Index = [sym, 0, 0]
-          indexStack.push(ntIndex)
+        // subscribe in `dep`
+        if (!dep.has(sym)) {
+          dep.set(sym, [])
         }
+        const list = dep.get(sym)!
+        list.push(index)
+
+        // push a new index for `sym` to stack
+        const ntIndex: Index = [sym, 0, 0]
+        indexStack.push(ntIndex)
       }
     }
     return producers
