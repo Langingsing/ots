@@ -76,55 +76,71 @@ class GrammarBase {
   }
 
   calcEpsilonProducers() {
+    // non-terminals which can produce epsilon
     const producers = new Set<NT>()
+    // non-terminals which can't produce epsilon at all
+    const nonEmptyProducers = new Set<NT>()
+
     if (this.isEmpty()) {
       return producers
     }
-    const indexStack: [NT, number, number][] = [[this.start!, 0, 0]]
-    const dep = new Graph<Sym>()
-    Object.defineProperty(dep, 'notify', {
-      value(nt: NT) {
+    type Index = [NT, number, number]
+    /* depth-first searching with a dependency graph tracked */
+
+    const indexStack: Index[] = [[this.start!, 0, 0]]
+    const dep = new Map<NT, Index[]>()
+
+    while (indexStack.length > 0) {
+      const index = indexStack.at(-1)!
+      const [nt, seqIdx, symIdx] = index
+      const rhs = this.rules.get(nt)!
+      if (seqIdx == rhs.length) {
+        indexStack.pop()
+        nonEmptyProducers.add(nt)
+        continue
       }
-    })
-    // for (const nt of this.nonTermIter())
-    while (indexStack.length) {
-      const [nt, i, j] = indexStack.at(-1)!
-      const sym = this.rules.get(nt)![i][j]
+      const seq = rhs[seqIdx]!
+      if (symIdx == seq.length) {
+        indexStack.pop()
+        producers.add(nt)
+        continue
+      }
+      const sym = seq[symIdx]!
+
       if (sym == '') {
         producers.add(nt)
-        // no circuit
-        // notify
-      } else if (this.isTerm(sym)) {
-        indexStack.pop()
-      } else {
-        // is non-terminal
-        // subscribe
+        // todo: check no circuit
 
+        // notify
+        // increase depIndex[2] which represents symIdx
+        dep.get(nt)?.forEach(depIndex => depIndex[2]++)
+
+        indexStack.pop()
+      } else if (this.isTerm(sym)) {
+        // replace the stack top with an index for next seq
+
+        // increase index[1] which represents seqIdx
+        index[1] = seqIdx + 1
+        // reset index[1] which represents symIdx
+        index[2] = 0
+      } else {
+        // here `sym` is non-terminal
+
+        if (!producers.has(sym)) {
+          // subscribe in `dep`
+          if (!dep.has(sym)) {
+            dep.set(sym, [])
+          }
+          const list = dep.get(sym)!
+          list.push(index)
+
+          // push a new index for `sym` to stack
+          const ntIndex: Index = [sym, 0, 0]
+          indexStack.push(ntIndex)
+        }
       }
     }
-    for (const [nt, rhs] of this.rules) {
-      dep.set(nt, new Set())
-      // for (const seq of rhs) {
-      //   for (const sym of seq) {
-      //   }
-      // }
-
-      // `some` and `every` act as control flow
-      rhs.some(seq => seq.every(sym => {
-        if (sym == '') {
-          producers.add(nt)
-          // no circuit
-          // notify
-          return true
-        }
-        if (this.isTerm(sym)) {
-          return false
-        }
-        // is non-terminal
-        return producers.has(sym)
-      }))
-    }
-    return undefined
+    return producers
   }
 
   isEmpty() {
