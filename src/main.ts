@@ -1,4 +1,41 @@
-import {Graph} from "./graph.js"
+function findLastIndex<T>(arr: T[], predicate: (item: T, index: number, arr: T[]) => unknown) {
+  for (let i = arr.length - 1; i >= 0; i--) {
+    if (predicate(arr[i], i, arr)) {
+      return i
+    }
+  }
+  return -1
+}
+
+function findLast<T>(arr: T[], predicate: (item: T, index: number, arr: T[]) => unknown) {
+  const i = findLastIndex(arr, predicate)
+  return i >= 0 ? arr[i] : undefined
+}
+
+// production index
+class ProdIndex {
+  constructor(
+    public nt: NT,
+    public seqIdx = 0,
+    public symIdx = 0,
+  ) {
+  }
+
+  nextSym() {
+    this.symIdx++
+    return this
+  }
+
+  nextSeq() {
+    this.seqIdx++
+    this.symIdx = 0
+    return this
+  }
+
+  clone() {
+    return new ProdIndex(this.nt, this.seqIdx, this.symIdx)
+  }
+}
 
 class GrammarBase {
   private readonly rules: Map<NT, Sym[][]>
@@ -83,19 +120,15 @@ class GrammarBase {
 
     // non-terminals which can't produce epsilon at all
     const nonEmptyProducers = new Set<NT>()
-    // non-terminals which has been met
-    const metNTs = new Set<NT>()
 
-    type Index = [NT, number, number]
     /* depth-first searching with a dependency graph tracked */
 
-    const indexStack: Index[] = [[this.start!, 0, 0]]
-    const dep = new Map<NT, Index[]>()
+    const indexStack = [new ProdIndex(this.start!)]
+    const dep = new Map<NT, ProdIndex[]>()
 
     while (indexStack.length > 0) {
       const index = indexStack.at(-1)!
-      const [nt, seqIdx, symIdx] = index
-      metNTs.add(nt)
+      const {nt, seqIdx, symIdx} = index
       const rhs = this.rules.get(nt)!
       if (seqIdx == rhs.length) {
         indexStack.pop()
@@ -108,26 +141,17 @@ class GrammarBase {
         producers.add(nt)
 
         // notify
-        dep.get(nt)?.forEach(depIndex => {
-          // increase depIndex[2] which represents symIdx
-          depIndex[2]++
-        })
+        dep.get(nt)?.forEach(depIndex => depIndex.nextSym())
 
         continue
       }
       const sym = seq[symIdx]!
 
       if (sym == '') {
-        // todo: check no circuit
-        // increase index[2] which represents symIdx
-        index[2]++
+        index.nextSym()
       } else if (this.isTerm(sym) || nonEmptyProducers.has(sym)) {
         // replace the stack top with an index for next seq
-
-        // increase index[1] which represents seqIdx
-        index[1] = seqIdx + 1
-        // reset index[1] which represents symIdx
-        index[2] = 0
+        index.nextSeq()
       } else {
         // here `sym` is non-terminal
 
@@ -139,7 +163,13 @@ class GrammarBase {
         list.push(index)
 
         // push a new index for `sym` to stack
-        const ntIndex: Index = [sym, 0, 0]
+        let ntIndex: ProdIndex
+        const last = findLast(indexStack, item => item.nt == sym)
+        if (last) {
+          ntIndex = last.clone().nextSeq()
+        } else {
+          ntIndex = new ProdIndex(sym)
+        }
         indexStack.push(ntIndex)
       }
     }
