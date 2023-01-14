@@ -129,14 +129,18 @@ class GrammarBase {
     while (indexStack.length > 0) {
       const index = indexStack.at(-1)!
       const {nt, seqIdx, symIdx} = index
+      if (producers.has(nt) || nonEmptyProducers.has(nt)) {
+        indexStack.pop()
+        continue
+      }
       const rhs = this.rules.get(nt)!
-      if (seqIdx == rhs.length) {
+      if (seqIdx >= rhs.length) {
         indexStack.pop()
         nonEmptyProducers.add(nt)
         continue
       }
       const seq = rhs[seqIdx]!
-      if (symIdx == seq.length) {
+      if (symIdx >= seq.length) {
         indexStack.pop()
         producers.add(nt)
 
@@ -163,13 +167,8 @@ class GrammarBase {
         list.push(index)
 
         // push a new index for `sym` to stack
-        let ntIndex: ProdIndex
         const last = findLast(indexStack, item => item.nt == sym)
-        if (last) {
-          ntIndex = last.clone().nextSeq()
-        } else {
-          ntIndex = new ProdIndex(sym)
-        }
+        const ntIndex = last?.clone().nextSeq() ?? new ProdIndex(sym)
         indexStack.push(ntIndex)
       }
     }
@@ -198,7 +197,7 @@ class Grammar extends GrammarBase {
     return this._terms ??= super.terms
   }
 
-  protected invalidCache() {
+  protected invalidateCache() {
     this._terms = this._alphabet = this._nonTerms = undefined
   }
 }
