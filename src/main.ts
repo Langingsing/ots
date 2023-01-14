@@ -32,7 +32,6 @@ class GrammarBase {
   }
 
   get nonTerms() {
-    console.log('in base')
     return new Set(this.nonTermIter())
   }
 
@@ -78,12 +77,15 @@ class GrammarBase {
   calcEpsilonProducers() {
     // non-terminals which can produce epsilon
     const producers = new Set<NT>()
-    // non-terminals which can't produce epsilon at all
-    const nonEmptyProducers = new Set<NT>()
-
     if (this.isEmpty()) {
       return producers
     }
+
+    // non-terminals which can't produce epsilon at all
+    const nonEmptyProducers = new Set<NT>()
+    // non-terminals which has been met
+    const metNTs = new Set<NT>()
+
     type Index = [NT, number, number]
     /* depth-first searching with a dependency graph tracked */
 
@@ -93,6 +95,7 @@ class GrammarBase {
     while (indexStack.length > 0) {
       const index = indexStack.at(-1)!
       const [nt, seqIdx, symIdx] = index
+      metNTs.add(nt)
       const rhs = this.rules.get(nt)!
       if (seqIdx == rhs.length) {
         indexStack.pop()
@@ -103,6 +106,13 @@ class GrammarBase {
       if (symIdx == seq.length) {
         indexStack.pop()
         producers.add(nt)
+
+        // notify
+        dep.get(nt)?.forEach(depIndex => {
+          // increase depIndex[2] which represents symIdx
+          depIndex[2]++
+        })
+
         continue
       }
       const sym = seq[symIdx]!
@@ -111,12 +121,6 @@ class GrammarBase {
         // todo: check no circuit
         // increase index[2] which represents symIdx
         index[2]++
-
-        // notify
-        dep.get(nt)?.forEach(depIndex => {
-          // increase depIndex[2] which represents symIdx
-          depIndex[2]++
-        })
       } else if (this.isTerm(sym) || nonEmptyProducers.has(sym)) {
         // replace the stack top with an index for next seq
 
@@ -157,7 +161,6 @@ class Grammar extends GrammarBase {
   }
 
   get nonTerms() {
-    console.log('in extend')
     return this._nonTerms ??= super.nonTerms
   }
 
@@ -171,8 +174,8 @@ class Grammar extends GrammarBase {
 }
 
 const grammar = new Grammar([
-  ['D', [['E']]],
-  ['F', [['TE']]],
+  ['A', [['B', 'a'], ['']]],
+  ['B', [['A'], ['b']]],
   ['E', [['T', '+', 'E'], ['T', '-', 'E'], ['']]]
 ]);
 
