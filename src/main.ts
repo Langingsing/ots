@@ -6,4 +6,4 @@ const grammar = new Grammar([
   ['E', [['T', '+', 'E'], ['T', '-', 'E'], ['']]]
 ]);
 
-console.log(grammar.first)
+console.log(grammar.follow)

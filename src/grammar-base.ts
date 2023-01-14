@@ -1,14 +1,22 @@
 import {findLast, getOrSetDefault} from "./utils.js"
 import {ProdIndex} from "./prod-index.js"
 import type {NT, Sym, Term} from "./types"
+import {MapToSet} from "./map-to-set.js"
 
 export class GrammarBase {
   private readonly rules: Map<NT, Sym[][]>
   start?: NT
+  end: Term
 
   constructor(ruleEntries: readonly [NT, Sym[][]][] = []) {
     this.rules = new Map(ruleEntries)
     this.start = ruleEntries[0]?.[0]
+    const {alphabet} = this
+    let end = '$'
+    while (alphabet.has(end)) {
+      end += '$'
+    }
+    this.end = end
   }
 
   get alphabet() {
@@ -55,12 +63,71 @@ export class GrammarBase {
     return this.terms.has(sym)
   }
 
+  get follow() {
+    return this.calcFollow()
+  }
+
+  protected calcFollow(): Map<NT, Set<Term>> {
+    const follow = new MapToSet<NT, Term>()
+    if (this.isEmpty()) {
+      return follow
+    }
+
+    follow.set(this.start!, new Set([this.end]))
+
+    const dep = new MapToSet<NT, NT>()
+
+    for (const [nt, rhs] of this.rules) {
+      for (const seq of rhs) {
+        for (let i = seq.length - 2; i >= 0; i--) {
+          const sym = seq[i]
+          const nextSym = seq[i + 1]
+          if (this.isNonTerm(sym)) {
+            const firstSet = this.firstSetOf(nextSym)
+            firstSet.delete('')
+            follow.extend(sym, firstSet)
+          }
+        }
+        for (let i = seq.length - 1; i >= 0; i--) {
+          const sym = seq[i]
+
+          if (nt != sym && this.isNonTerm(sym)) {
+            dep.add(nt, sym)
+          }
+
+          if (!this.canProduceEpsilon(sym)) {
+            break
+          }
+        }
+      }
+    }
+
+    for (const [from, nts] of dep) {
+      const set = follow.get(from)
+      if (!set) {
+        continue
+      }
+      for (const to of nts) {
+        follow.extend(to, set)
+      }
+    }
+
+    return follow
+  }
+
+  protected firstSetOf(sym: Sym) {
+    if (this.isNonTerm(sym)) {
+      return this.first.get(sym) ?? new Set()
+    }
+    return new Set([sym])
+  }
+
   get first() {
     return this.calcFirst()
   }
 
-  calcFirst() {
-    const first = new Map<NT, Set<Term>>()
+  protected calcFirst(): Map<NT, Set<Term>> {
+    const first = new MapToSet<NT, Term>()
     if (this.isEmpty()) {
       return first
     }
@@ -79,10 +146,13 @@ export class GrammarBase {
         // notify
         const toSeeNextSeq = !this.epsilonProducers.has(nt)
         dep.get(nt)?.forEach(targetIndex => {
-          const set = getOrSetDefault(first, targetIndex.nt, new Set())
-          first.get(nt)?.forEach(item => set.add(item))
-          if (toSeeNextSeq)
+          const set = first.get(nt)
+          if (set) {
+            first.extend(targetIndex.nt, set)
+          }
+          if (toSeeNextSeq) {
             targetIndex.nextSeq()
+          }
         })
         continue
       }
@@ -90,8 +160,7 @@ export class GrammarBase {
       if (symIdx >= seq.length) {
         index.nextSeq()
 
-        const set = getOrSetDefault(first, nt, new Set())
-        set.add('')
+        first.add(nt, '')
 
         // notify
         dep.get(nt)?.forEach(depIndex => depIndex.nextSym())
@@ -103,8 +172,7 @@ export class GrammarBase {
       if (sym == '') {
         index.nextSym()
       } else if (this.isTerm(sym)) {
-        const set = getOrSetDefault(first, nt, new Set())
-        set.add(sym)
+        first.add(nt, sym)
 
         // replace the stack top with an index for next seq
         index.nextSeq()
@@ -122,6 +190,10 @@ export class GrammarBase {
       }
     }
     return first
+  }
+
+  protected canProduceEpsilon(sym: Sym) {
+    return sym == '' || this.epsilonProducers.has(sym)
   }
 
   get epsilonProducers() {
