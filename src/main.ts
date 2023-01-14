@@ -47,32 +47,31 @@ class GrammarBase {
   }
 
   get alphabet() {
-    return new Set(this.alphabetIter())
+    return this.calcAlphabetSet()
   }
 
-  * alphabetIter() {
+  protected calcAlphabetSet() {
     const set = new Set<Sym>()
     for (const [nt, rhs] of this.rules) {
       if (!set.has(nt)) {
-        yield nt
         set.add(nt)
       }
       for (const seq of rhs) {
         for (const sym of seq) {
           if (!set.has(sym)) {
-            yield sym
             set.add(sym)
           }
         }
       }
     }
+    return set
   }
 
   get nonTerms() {
     return new Set(this.nonTermIter())
   }
 
-  nonTermIter() {
+  protected nonTermIter() {
     return this.rules.keys()
   }
 
@@ -85,7 +84,7 @@ class GrammarBase {
   }
 
   * termIter() {
-    for (const sym of this.alphabetIter()) {
+    for (const sym of this.alphabet) {
       if (!this.isNonTerm(sym))
         yield sym
     }
@@ -111,7 +110,11 @@ class GrammarBase {
     }
   }
 
-  calcEpsilonProducers() {
+  get epsilonProducers() {
+    return this.calcEpsilonProducers()
+  }
+
+  protected calcEpsilonProducers() {
     // non-terminals which can produce epsilon
     const producers = new Set<NT>()
     if (this.isEmpty()) {
@@ -182,8 +185,9 @@ class GrammarBase {
 
 class Grammar extends GrammarBase {
   private _alphabet?: Set<Sym>
-  private _nonTerms?: Set<Sym>
-  private _terms?: Set<Sym>
+  private _nonTerms?: Set<NT>
+  private _terms?: Set<Term>
+  private _epsilonProducers?: Set<NT>
 
   get alphabet() {
     return this._alphabet ??= super.alphabet
@@ -197,8 +201,12 @@ class Grammar extends GrammarBase {
     return this._terms ??= super.terms
   }
 
+  get epsilonProducers() {
+    return this._epsilonProducers ??= super.epsilonProducers
+  }
+
   protected invalidateCache() {
-    this._terms = this._alphabet = this._nonTerms = undefined
+    this._terms = this._alphabet = this._nonTerms = this._epsilonProducers = undefined
   }
 }
 
@@ -208,7 +216,7 @@ const grammar = new Grammar([
   ['E', [['T', '+', 'E'], ['T', '-', 'E'], ['']]]
 ]);
 
-console.log(grammar.calcEpsilonProducers())
+console.log(grammar.epsilonProducers)
 
 type Sym = string
 type NT = Sym
