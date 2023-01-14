@@ -2,16 +2,16 @@
  * directed graph
  * */
 export class Graph<T> extends Map<T, Iterable<T>> {
-  * iter(start: T) {
-    const met = new Set<T>()
+  closure(start: T) {
+    const set = new Set<T>()
     const stack = [start]
     while (stack.length) {
       const item = stack.pop()!
-      if (met.has(item))
+      if (set.has(item))
         continue
-      yield item
-      met.add(item)
+      set.add(item)
       stack.push(...this.get(item)!)
     }
+    return set
   }
 }

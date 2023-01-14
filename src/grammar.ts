@@ -6,6 +6,7 @@ export class Grammar extends GrammarBase {
   private _nonTerms?: Set<NT>
   private _terms?: Set<Term>
   private _epsilonProducers?: Set<NT>
+  private _first?: Map<NT, Set<Term>>
 
   get alphabet() {
     return this._alphabet ??= super.alphabet
@@ -23,7 +24,11 @@ export class Grammar extends GrammarBase {
     return this._epsilonProducers ??= super.epsilonProducers
   }
 
+  get first() {
+    return this._first ??= super.first
+  }
+
   protected invalidateCache() {
-    this._terms = this._alphabet = this._nonTerms = this._epsilonProducers = undefined
+    this._terms = this._alphabet = this._nonTerms = this._epsilonProducers = this._first = undefined
   }
 }

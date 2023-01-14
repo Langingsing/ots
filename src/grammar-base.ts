@@ -1,6 +1,6 @@
-import {findLast} from "./utils.js"
+import {findLast, getOrSetDefault} from "./utils.js"
 import {ProdIndex} from "./prod-index.js"
-import type {NT, Sym} from "./types"
+import type {NT, Sym, Term} from "./types"
 
 export class GrammarBase {
   private readonly rules: Map<NT, Sym[][]>
@@ -18,14 +18,10 @@ export class GrammarBase {
   protected calcAlphabetSet() {
     const set = new Set<Sym>()
     for (const [nt, rhs] of this.rules) {
-      if (!set.has(nt)) {
-        set.add(nt)
-      }
+      set.add(nt)
       for (const seq of rhs) {
         for (const sym of seq) {
-          if (!set.has(sym)) {
-            set.add(sym)
-          }
+          set.add(sym)
         }
       }
     }
@@ -59,20 +55,70 @@ export class GrammarBase {
     return this.terms.has(sym)
   }
 
-  calcFirst() {
-    const first = new Map<Sym, Set<Sym>>()
-    const dep = new Map<Sym, Set<Sym>>()
-    for (const nt of this.nonTermIter()) {
-      first.set(nt, new Set())
-      dep.set(nt, new Set())
-    }
-    for (const [nt, rhs] of this.rules) {
-      for (const seq of rhs) {
-        for (const sym of seq) {
+  get first() {
+    return this.calcFirst()
+  }
 
-        }
+  calcFirst() {
+    const first = new Map<NT, Set<Term>>()
+    if (this.isEmpty()) {
+      return first
+    }
+
+    /* depth-first searching with a dependency graph tracked */
+
+    const indexStack = [new ProdIndex(this.start!)]
+    const dep = new Map<NT, ProdIndex[]>()
+
+    while (indexStack.length > 0) {
+      const index = indexStack.at(-1)!
+      const {nt, seqIdx, symIdx} = index
+      const rhs = this.rules.get(nt)!
+      if (seqIdx >= rhs.length) {
+        indexStack.pop()
+        // notify
+        dep.get(nt)?.forEach(({nt: targetNT}) => {
+          const set = getOrSetDefault(first, targetNT, new Set())
+          first.get(nt)?.forEach(item => set.add(item))
+        })
+        continue
+      }
+      const seq = rhs[seqIdx]!
+      if (symIdx >= seq.length) {
+        index.nextSeq()
+
+        const set = getOrSetDefault(first, nt, new Set())
+        set.add('')
+
+        // notify
+        dep.get(nt)?.forEach(depIndex => depIndex.nextSym())
+
+        continue
+      }
+      const sym = seq[symIdx]!
+
+      if (sym == '') {
+        index.nextSym()
+      } else if (this.isTerm(sym)) {
+        const set = getOrSetDefault(first, nt, new Set())
+        set.add(sym)
+
+        // replace the stack top with an index for next seq
+        index.nextSeq()
+      } else {
+        // here `sym` is non-terminal
+
+        // subscribe in `dep`
+        const list = getOrSetDefault(dep, sym, [])
+        list.push(index)
+
+        // push a new index for `sym` to stack
+        const last = findLast(indexStack, item => item.nt == sym)
+        const ntIndex = last?.clone().nextSeq() ?? new ProdIndex(sym)
+        indexStack.push(ntIndex)
       }
     }
+    return first
   }
 
   get epsilonProducers() {
@@ -128,10 +174,7 @@ export class GrammarBase {
         // here `sym` is non-terminal
 
         // subscribe in `dep`
-        if (!dep.has(sym)) {
-          dep.set(sym, [])
-        }
-        const list = dep.get(sym)!
+        const list = getOrSetDefault(dep, sym, [])
         list.push(index)
 
         // push a new index for `sym` to stack
