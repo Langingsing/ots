@@ -77,9 +77,12 @@ export class GrammarBase {
       if (seqIdx >= rhs.length) {
         indexStack.pop()
         // notify
-        dep.get(nt)?.forEach(({nt: targetNT}) => {
-          const set = getOrSetDefault(first, targetNT, new Set())
+        const toSeeNextSeq = !this.epsilonProducers.has(nt)
+        dep.get(nt)?.forEach(targetIndex => {
+          const set = getOrSetDefault(first, targetIndex.nt, new Set())
           first.get(nt)?.forEach(item => set.add(item))
+          if (toSeeNextSeq)
+            targetIndex.nextSeq()
         })
         continue
       }
