@@ -1,6 +1,7 @@
 import {findLast, getOrSetDefault} from "./utils.js"
 import {ProdIndex} from "./prod-index.js"
 import {MapToSet} from "./map-to-set.js"
+import {DFA, ItemRight, StateData} from "./state.js"
 import type {NT, Sym, Term} from "./types"
 
 export class GrammarBase {
@@ -275,6 +276,88 @@ export class GrammarBase {
       }
     }
     return producers
+  }
+
+  calcDFA() {
+    const state = this.closure(this.start!)
+    state.code = 0
+    let code = 1
+    const root = new DFA(state)
+    const met = new Set<DFA>();
+    const stack = [root]
+    while (stack.length > 0) {
+      const node = stack.pop()!
+
+      if (met.has(node)) {
+        continue
+      }
+      met.add(node)
+
+      const state = node.data
+
+      for (const symbol of state.availableEdges()) {
+        const next = this.nextStateNew(state, symbol, code)
+        let dest = root.find(state => state.eq(next))
+        if (!dest) {
+          dest = new DFA(next)
+          code++
+        }
+        node.link(symbol, dest)
+        stack.push(dest)
+      }
+    }
+    return root
+  }
+
+  nextStateNew(state: Readonly<StateData>, symbol: Sym, code: number) {
+    const next = new StateData(code);
+    return this.nextState(state, symbol, next);
+  }
+
+  private nextState(state: Readonly<StateData>, symbol: Sym, next: StateData) {
+    for (const [nonTerm, set] of state) {
+      for (const itemRight of set) {
+        if (!itemRight.toShift())
+          continue
+        const atDot = itemRight.atDot()
+        if (atDot == symbol) {
+          next.extend(nonTerm, [itemRight.newAdvance()])
+        }
+      }
+    }
+    this.closureOnState(next)
+    return next
+  }
+
+  private newItemRightList(nt: NT) {
+    return this.rules.get(nt)!.map(seq => new ItemRight(seq))
+  }
+
+  private closure(nt: NT) {
+    const state = new StateData()
+    state.set(nt, this.newItemRightList(nt))
+    this.closureOnState(state)
+    return state
+  }
+
+  private closureOnState(state: StateData) {
+    for (; ;) {
+      const count = state.count()
+      for (const nt of state.keys()) {
+        const setRef = state.get(nt)!
+        for (const itemRight of setRef) {
+          if (itemRight.toReduce())
+            continue
+          const symbol = itemRight.atDot()
+          if (this.isTerm(symbol))
+            continue
+          const newSet = this.newItemRightList(symbol)
+          state.extend(symbol, newSet)
+        }
+      }
+      if (state.count() == count)
+        return state
+    }
   }
 
   isEmpty() {
