@@ -1,4 +1,4 @@
-import {findLast, getOrSetDefault} from "./utils.js"
+import {find, findLast, getOrSetDefault} from "./utils.js"
 import {ProdIndex} from "./prod-index.js"
 import {MapToSet} from "./map-to-set.js"
 import {DFA, ItemRight, StateData} from "./state.js"
@@ -297,7 +297,7 @@ export class GrammarBase {
 
       for (const symbol of state.availableEdges()) {
         const next = this.nextStateNew(state, symbol, code)
-        let dest = root.find(state => state.eq(next))
+        let dest = find(met, state => state.data.eq(next))
         if (!dest) {
           dest = new DFA(next)
           code++
