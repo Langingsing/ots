@@ -1,9 +1,9 @@
-/**
- * directed graph
- * */
 import {find, getOrSetDefault} from "./utils.js";
 
-export class Graph<T, E> extends Map<E, Graph<T, E>[]> {
+/**
+ * single-directed graph
+ * */
+export class Graph<T, E> extends Map<E, Graph<T, E>> {
   constructor(
     public data: T
   ) {
@@ -18,18 +18,14 @@ export class Graph<T, E> extends Map<E, Graph<T, E>[]> {
       if (set.has(node))
         continue
       set.add(node)
-      for (const descendants of node.values()) {
-        stack.push(...descendants)
-      }
+      stack.push(...node.values())
     }
     return set
   }
 
   * edges() {
-    for (const [edge, nodes] of this) {
-      for (const dest of nodes) {
-        yield [edge, dest.data] as [E, T]
-      }
+    for (const [edge, node] of this) {
+      yield [edge, node.data] as [E, T]
     }
   }
 
@@ -38,7 +34,6 @@ export class Graph<T, E> extends Map<E, Graph<T, E>[]> {
   }
 
   link(edge: E, dest: this) {
-    const arr = getOrSetDefault(this, edge, [])
-    arr.push(dest)
+    getOrSetDefault(this, edge, dest)
   }
 }
