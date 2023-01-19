@@ -14,11 +14,6 @@ export class ProdIndex {
     return this
   }
 
-  prevSym() {
-    this.symIdx--
-    return this
-  }
-
   nextSeq() {
     this.seqIdx++
     this.symIdx = 0

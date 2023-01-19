@@ -1,7 +1,7 @@
 import {findLast, getOrSetDefault} from "./utils.js"
 import {ProdIndex} from "./prod-index.js"
-import type {NT, Sym, Term} from "./types"
 import {MapToSet} from "./map-to-set.js"
+import type {NT, Sym, Term} from "./types"
 
 export class GrammarBase {
   private readonly rules: Map<NT, Sym[][]>
@@ -102,13 +102,29 @@ export class GrammarBase {
       }
     }
 
-    for (const [from, nts] of dep) {
-      const set = follow.get(from)
-      if (!set) {
+    for (const src of dep.keys()) {
+      const followOfSrc = follow.get(src)
+
+      if (!followOfSrc) {
         continue
       }
-      for (const to of nts) {
-        follow.extend(to, set)
+
+      const stack = [...dep.get(src)!]
+      const met = new Set<NT>([src])
+
+      while (stack.length > 0) {
+        const descendant = stack.pop()!
+        if (met.has(descendant)) {
+          continue
+        }
+        met.add(descendant)
+
+        follow.extend(descendant, followOfSrc)
+
+        const ntSet = dep.get(descendant)
+        if (ntSet) {
+          stack.push(...ntSet)
+        }
       }
     }
 
