@@ -97,10 +97,53 @@ export function every<T>(i: Iterable<T>, predicate: predicate<T>) {
   return true
 }
 
+export function some<T>(i: Iterable<T>, predicate: predicate<T>) {
+  for (const item of i) {
+    if (predicate(item)) {
+      return true
+    }
+  }
+  return false
+}
+
 export function* filter<T>(i: Iterable<T>, predicate: predicate<T>) {
   for (const item of i) {
     if (predicate(item)) {
       yield item
     }
+  }
+}
+
+export function intersect<T>(i: Iterable<T>, set: ReadonlySet<T>) {
+  return filter(i, item => set.has(item))
+}
+
+export function* combine<T>(arr: readonly T[], k: number) {
+  const {length: n} = arr
+  if (k >= n || k <= 0) {
+    // shallow copy
+    return Array.from(arr)
+  }
+  const indices = Array.from({length: k}, (_, i) => i)
+  for (; ;) {
+    if (indices[k - 1] >= n) {
+      let some = false
+      for (let i = k - 2; i >= 0; i--) {
+        if (indices[i] + 1 < indices[i + 1]) {
+          indices[i]++
+          for (let j = k - i - 1; j >= 1; j--) {
+            indices[i + j] = j + indices[i]
+          }
+          some = true
+          break
+        }
+      }
+      if (!some) {
+        break
+      }
+      continue
+    }
+    yield indices.map(index => arr[index])
+    indices[k - 1]++
   }
 }
