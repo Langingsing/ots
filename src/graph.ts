@@ -18,9 +18,13 @@ export class Graph<T, E> extends Map<E, Graph<T, E>> {
       if (set.has(node))
         continue
       set.add(node)
-      stack.push(...node.values())
+      stack.push(...node.outputs())
     }
     return set
+  }
+
+  outputs() {
+    return this.values()
   }
 
   * edges() {

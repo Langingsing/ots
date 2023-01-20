@@ -1,4 +1,4 @@
-import {getOrSetDefault, arrEq, count, mapEq, includes} from "./utils.js"
+import {getOrSetDefault, arrEq, count, mapEq, includes, some, every, map, filter} from "./utils.js"
 import {Graph} from "./graph.js"
 import type {Sym, NT} from "./types"
 
@@ -72,17 +72,42 @@ export class StateData extends Map<Sym, ItemRight[]> {
     }
   }
 
-  * itemRights() {
+  itemRights() {
+    return map(this.productions(), ([_, item]) => item)
+  }
+
+  productionsToReduce() {
+    return filter(this.productions(), ([_, item]) => item.toReduce())
+  }
+
+  canReduce() {
+    return some(this.itemRights(), item => item.toReduce())
+  }
+
+  toReduce() {
+    const it = this.itemRights()
+    const first = it.next()
+    if (first.done || first.value.toShift()) {
+      return false
+    }
+    return it.next().done
+  }
+
+  toShift() {
+    return every(this.itemRights(), item => item.toShift())
+  }
+
+  * productions() {
     for (const [nt, set] of this) {
       for (const item of set) {
-        yield [item, nt] as [ItemRight, NT]
+        yield [nt, item] as [NT, ItemRight]
       }
     }
   }
 
   availableEdges() {
     const edges = new Set<Sym>()
-    for (const [item] of this.itemRights()) {
+    for (const item of this.itemRights()) {
       if (item.toShift() && item.atDot() != '') {
         edges.add(item.atDot())
       }

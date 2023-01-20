@@ -1,8 +1,10 @@
-import {find, findLast, getOrSetDefault} from "./utils.js"
+import {combine, every, find, findLast, getOrSetDefault, intersect, map, zip} from "./utils.js"
 import {ProdIndex} from "./prod-index.js"
 import {MapToSet} from "./map-to-set.js"
 import {DFA, ItemRight, StateData} from "./state.js"
 import type {NT, Sym, Term} from "./types"
+import {SLRTable} from "./slr-table.js"
+import {Reduce, Shift} from "./action.js"
 
 export class GrammarBase {
   private readonly rules: Map<NT, Sym[][]>
@@ -358,6 +360,51 @@ export class GrammarBase {
       if (state.count() == count)
         return state
     }
+  }
+
+  calcSLRTable() {
+    const dfaNodeList = [...this.calcDFA().closure()]
+    const table = new SLRTable(
+      dfaNodeList.map(node => node.data),
+      this.terms,
+      this.nonTerms,
+      this.end
+    )
+    for (let i = 0; i < dfaNodeList.length; i++) {
+      const fromNode = dfaNodeList[i]
+      const row = table.rows[i].body
+      const {data: from} = fromNode
+
+      for (const [edge, toNode] of fromNode) {
+        const {data: to} = toNode
+        if (this.isNonTerm(edge)) {
+          row.setGoto(edge, to)
+        } else {
+          row.setAction(edge, new Shift(to))
+        }
+      }
+      let {follow} = this
+      const productionsToReduce = [...from.productionsToReduce()]
+      const followSets = productionsToReduce.map(([nt]) => {
+        return follow.get(nt)!
+      })
+      if (productionsToReduce.length > 1) {
+        const valid = !every(
+          combine([...followSets], 2), ([a, b]) => {
+            return intersect(a, b).next().done!
+          }
+        )
+        if (!valid) {
+          throw 'reduce-reduce conflict'
+        }
+      }
+      for (const [[nt, {seq}], set] of zip(productionsToReduce, followSets)) {
+        for (const term of set) {
+          row.setAction(term, new Reduce(nt, seq))
+        }
+      }
+    }
+    return table
   }
 
   isEmpty() {

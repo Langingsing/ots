@@ -147,3 +147,14 @@ export function* combine<T>(arr: readonly T[], k: number) {
     indices[k - 1]++
   }
 }
+
+export function* zip<T, U>(a: Iterable<T>, b: Iterable<U>) {
+  let i = b[Symbol.iterator]()
+  for (const x of a) {
+    const {done, value: y} = i.next()
+    if (done) {
+      break
+    }
+    yield [x, y] as [T, U]
+  }
+}

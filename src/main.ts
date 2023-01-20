@@ -6,4 +6,4 @@ const grammar = new Grammar([
   ['E', [['T', '+', 'E'], ['T', '-', 'E'], ['']]]
 ]);
 
-console.log(grammar.calcDFA())
+console.log(grammar.calcSLRTable())
