@@ -31,7 +31,7 @@ export class Reduce extends Action {
   constructor(
     readonly nt: NT,
     readonly seq: readonly Sym[],
-    readonly code: number,
+    private readonly code: number,
   ) {
     super()
   }

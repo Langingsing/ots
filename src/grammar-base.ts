@@ -431,7 +431,7 @@ export class GrammarBase {
     while (stateStack.length > 0) {
       const {value: token, done} = tokenIter.next()
       if (done) {
-        throw 'early eof'
+        break
       }
       for (; ;) {
         const lastState = stateStack.at(-1)!
@@ -440,7 +440,7 @@ export class GrammarBase {
           throw 'syntax error'
         }
         if (action.isReduce()) {
-          const {nt, seq, code} = action
+          const {nt, seq} = action
           // pop seq.length states
           stateStack.splice(stateStack.length - seq.length)
           const children = treeStack.splice(treeStack.length - seq.length)
@@ -460,6 +460,27 @@ export class GrammarBase {
         return treeStack[0]
       }
     }
+    while (stateStack.length > 0) {
+      const lastState = stateStack.at(-1)!
+      const action = slrTable.rows[lastState.code].body.action(this.end)
+      if (!action) {
+        throw 'syntax error'
+      }
+      if (action.isReduce()) {
+        const {nt, seq} = action
+        // pop seq.length states
+        stateStack.splice(stateStack.length - seq.length)
+        const children = treeStack.splice(treeStack.length - seq.length)
+        const lastState = stateStack.at(-1)!
+        const next = slrTable.rows[lastState.code].body.goto(nt)!
+        stateStack.push(next)
+        treeStack.push(new Tree(nt, children))
+      } else {
+        // action is Accept
+        break
+      }
+    }
+    return treeStack[0]
   }
 
   isEmpty() {
