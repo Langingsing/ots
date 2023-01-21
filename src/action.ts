@@ -21,6 +21,8 @@ export abstract class Action {
   isAccept(): this is Accept {
     return this.type == EAction.Accept
   }
+
+  abstract toString(): string
 }
 
 export class Reduce extends Action {
@@ -32,10 +34,18 @@ export class Reduce extends Action {
   ) {
     super()
   }
+
+  override toString() {
+    return 'Rx'
+  }
 }
 
 export class Accept extends Action {
   readonly type = EAction.Accept
+
+  override toString() {
+    return 'Acc'
+  }
 }
 
 export class Shift extends Action {
@@ -45,5 +55,9 @@ export class Shift extends Action {
     public readonly next: StateData
   ) {
     super()
+  }
+
+  override toString() {
+    return 'S' + this.next
   }
 }

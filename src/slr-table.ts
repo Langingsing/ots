@@ -1,6 +1,7 @@
 import {StateData} from "./state.js"
 import type {NT, Sym, Term} from "./types"
 import type {Action} from "./action"
+import {FmtTable} from "./table.js"
 
 export class BodyRow {
   constructor(
@@ -27,9 +28,10 @@ export class BodyRow {
 }
 
 export class Row {
+  public readonly body = new BodyRow()
+
   constructor(
     public readonly state: Readonly<StateData>,
-    public readonly body = new BodyRow(),
   ) {
   }
 }
@@ -54,9 +56,22 @@ export class SLRTable {
     return this.nts.has(sym)
   }
 
-  getOrSetDefault(sym: Sym) {
-    if (this.isActionKey(sym)) {
-
+  toString() {
+    const strTbl = new FmtTable()
+    const terms = [...this.terms, this.end]
+    const nts = [...this.nts]
+    const headers = strTbl.newRow()
+    headers.push('', ...terms, ...nts)
+    for (const {state, body} of this.rows) {
+      const row = strTbl.newRow()
+      row.push(state.toString())
+      for (const term of terms) {
+        row.push(body.action(term)?.toString() ?? '')
+      }
+      for (const nt of nts) {
+        row.push(body.goto(nt)?.toString() ?? '')
+      }
     }
+    return strTbl.toString()
   }
 }

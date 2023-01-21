@@ -128,6 +128,10 @@ export class StateData extends Map<Sym, ItemRight[]> {
   static codeLt(a: Readonly<StateData>, b: Readonly<StateData>) {
     return a.code < b.code
   }
+
+  toString() {
+    return this.code.toString()
+  }
 }
 
 export class DFA extends Graph<StateData, Sym> {

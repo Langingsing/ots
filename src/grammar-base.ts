@@ -1,4 +1,4 @@
-import {combine, every, find, findLast, getOrSetDefault, intersect, map, zip} from "./utils.js"
+import {combine, every, find, findLast, getOrSetDefault, intersect, zip} from "./utils.js"
 import {ProdIndex} from "./prod-index.js"
 import {MapToSet} from "./map-to-set.js"
 import {DFA, ItemRight, StateData} from "./state.js"
