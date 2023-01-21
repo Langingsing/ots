@@ -29,14 +29,15 @@ export class Reduce extends Action {
   readonly type = EAction.Reduce
 
   constructor(
-    public readonly nt: NT,
-    public readonly seq: readonly Sym[]
+    readonly nt: NT,
+    readonly seq: readonly Sym[],
+    readonly code: number,
   ) {
     super()
   }
 
   override toString() {
-    return 'Rx'
+    return 'R' + this.code
   }
 }
 

@@ -4,7 +4,7 @@ import {MapToSet} from "./map-to-set.js"
 import {DFA, ItemRight, StateData} from "./state.js"
 import type {NT, Sym, Term} from "./types"
 import {SLRTable} from "./slr-table.js"
-import {EAction, Reduce, Shift} from "./action.js"
+import {Reduce, Shift} from "./action.js"
 import {Token} from "./lexer.js"
 import {Tree} from "./tree.js"
 
@@ -13,7 +13,9 @@ export class GrammarBase {
   start?: NT
   end: Term
 
-  constructor(ruleEntries: readonly [NT, Sym[][]][] = []) {
+  constructor(
+    private readonly ruleEntries: readonly [NT, Sym[][]][]
+  ) {
     this.rules = new Map(ruleEntries)
     this.start = ruleEntries[0]?.[0]
     const {alphabet} = this
@@ -399,13 +401,25 @@ export class GrammarBase {
           throw 'reduce-reduce conflict'
         }
       }
-      for (const [[nt, {seq}], set] of zip(productionsToReduce, followSets)) {
-        for (const term of set) {
-          row.setAction(term, new Reduce(nt, seq))
+      for (const [[nt, {seq}], followSet] of zip(productionsToReduce, followSets)) {
+        for (const term of followSet) {
+          row.setAction(term, new Reduce(nt, seq, this.seqCode(nt, seq)))
         }
       }
     }
     return table
+  }
+
+  private seqCode(nt: NT, seq: readonly Sym[]) {
+    let code = 0
+    for (let [lhs, rhs] of this.ruleEntries) {
+      if (lhs == nt) {
+        code += rhs.indexOf(seq as Sym[])
+        break
+      }
+      code += rhs.length
+    }
+    return code
   }
 
   parse(tokens: Iterable<Token>) {
@@ -426,7 +440,7 @@ export class GrammarBase {
           throw 'syntax error'
         }
         if (action.isReduce()) {
-          const {nt, seq} = action
+          const {nt, seq, code} = action
           // pop seq.length states
           stateStack.splice(stateStack.length - seq.length)
           const children = treeStack.splice(treeStack.length - seq.length)
