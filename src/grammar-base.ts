@@ -1,4 +1,4 @@
-import {combine, every, find, findLast, getOrSetDefault, intersect, zip} from "./utils.js"
+import {combine, every, find, findLast, getOrSetDefault, intersect, map, zip} from "./utils.js"
 import {ProdIndex} from "./prod-index.js"
 import {MapToSet} from "./map-to-set.js"
 import {DFA, ItemRight, StateData} from "./state.js"
@@ -365,17 +365,16 @@ export class GrammarBase {
   }
 
   calcSLRTable(dfa: Readonly<DFA> = this.calcDFA()) {
-    const dfaNodeList = [...dfa.closure()]
+    const dfaNodeList = dfa.closure()
     const table = new SLRTable(
-      dfaNodeList.map(node => node.data),
+      [...map(dfaNodeList, node => node.data)],
       this.terms,
       this.nonTerms,
       this.end
     )
-    for (let i = 0; i < dfaNodeList.length; i++) {
-      const fromNode = dfaNodeList[i]
-      const row = table.rows[i].body
+    for (const fromNode of dfaNodeList) {
       const {data: from} = fromNode
+      const row = table.rows[from.code].body
 
       for (const [edge, toNode] of fromNode) {
         const {data: to} = toNode
@@ -385,7 +384,7 @@ export class GrammarBase {
           row.setAction(edge, new Shift(to))
         }
       }
-      let {follow} = this
+      const {follow} = this
       const productionsToReduce = [...from.productionsToReduce()]
       const followSets = productionsToReduce.map(([nt]) => {
         return follow.get(nt)!
@@ -415,10 +414,6 @@ export class GrammarBase {
     const slrTable = this.calcSLRTable(dfa)
     const stateStack = [dfa.data]
     const treeStack: Tree<Sym>[] = []
-    const indices: ReadonlyMap<StateData, number> = slrTable.rows.reduce((map, {state}, i) => {
-      map.set(state, i)
-      return map
-    }, new Map<StateData, number>())
     while (stateStack.length > 0) {
       const {value: token, done} = tokenIter.next()
       if (done) {
@@ -426,7 +421,7 @@ export class GrammarBase {
       }
       for (; ;) {
         const lastState = stateStack.at(-1)!
-        const action = slrTable.rows[indices.get(lastState)!].body.action(token.type)
+        const action = slrTable.rows[lastState.code].body.action(token.type)
         if (!action) {
           throw 'syntax error'
         }
@@ -436,7 +431,7 @@ export class GrammarBase {
           stateStack.splice(stateStack.length - seq.length)
           const children = treeStack.splice(treeStack.length - seq.length)
           const lastState = stateStack.at(-1)!
-          const next = slrTable.rows[indices.get(lastState)!].body.goto(nt)!
+          const next = slrTable.rows[lastState.code].body.goto(nt)!
           stateStack.push(next)
           treeStack.push(new Tree(nt, children))
           continue

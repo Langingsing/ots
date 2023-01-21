@@ -12,6 +12,10 @@ export function findLast<T>(arr: T[], predicate: (item: T, index: number, arr: T
   return i >= 0 ? arr[i] : undefined
 }
 
+export function comparingNum<T>(toNum: (item: T) => number = Number) {
+  return (a: T, b: T) => toNum(a) - toNum(b)
+}
+
 export function getOrSetDefault<K, V>(map: Map<K, V>, k: K, defaultV: V) {
   if (map.has(k)) {
     return map.get(k)!

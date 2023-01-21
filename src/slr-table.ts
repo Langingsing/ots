@@ -2,6 +2,7 @@ import {StateData} from "./state.js"
 import type {NT, Sym, Term} from "./types"
 import type {Action} from "./action"
 import {FmtTable} from "./table.js"
+import {comparingNum} from "./utils.js"
 
 export class BodyRow {
   constructor(
@@ -40,12 +41,14 @@ export class SLRTable {
   public readonly rows: readonly Row[]
 
   constructor(
-    readonly states: readonly StateData[],
+    states: readonly StateData[],
     public readonly terms: ReadonlySet<Term>,
     public readonly nts: ReadonlySet<NT>,
     public readonly end: Term,
   ) {
-    this.rows = states.map(state => new Row(state))
+    this.rows = states
+      .map(state => new Row(state))
+      .sort(comparingNum(row => row.state.code))
   }
 
   private isActionKey(sym: Sym) {
