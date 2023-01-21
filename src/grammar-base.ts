@@ -428,17 +428,12 @@ export class GrammarBase {
   }
 
   parse(tokens: Iterable<Token>) {
-    const tokenIter = tokens[Symbol.iterator]()
     const dfa = this.calcDFA()
     const slrTable = this.calcSLRTable(dfa)
     const stateStack = [dfa.data]
     const treeStack: Tree<Sym>[] = []
     // iterate over tokens
-    while (stateStack.length > 0) {
-      const {value: token, done} = tokenIter.next()
-      if (done) {
-        break
-      }
+    for (const token of tokens) {
       for (; ;) {
         const lastState = stateStack.at(-1)!
         const action = slrTable.rows[lastState.code].body.action(token.type)
@@ -466,7 +461,7 @@ export class GrammarBase {
       }
     }
     // reducing and accepting
-    while (stateStack.length > 0) {
+    for (; ;) {
       const lastState = stateStack.at(-1)!
       const action = slrTable.rows[lastState.code].body.action(this.end)
       if (!action) {
