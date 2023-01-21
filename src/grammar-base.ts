@@ -4,7 +4,7 @@ import {MapToSet} from "./map-to-set.js"
 import {DFA, ItemRight, StateData} from "./state.js"
 import type {NT, Sym, Term} from "./types"
 import {SLRTable} from "./slr-table.js"
-import {Reduce, Shift} from "./action.js"
+import {Accept, Reduce, Shift} from "./action.js"
 import {Token} from "./lexer.js"
 import {Tree} from "./tree.js"
 
@@ -407,6 +407,11 @@ export class GrammarBase {
         }
       }
     }
+    // set Accept
+    const acceptingState = table.rows[0].body.goto(this.start!)!
+    const acceptingRow = table.rows[acceptingState.code]
+    acceptingRow.body.setAction(this.end, new Accept())
+
     return table
   }
 
@@ -428,6 +433,7 @@ export class GrammarBase {
     const slrTable = this.calcSLRTable(dfa)
     const stateStack = [dfa.data]
     const treeStack: Tree<Sym>[] = []
+    // iterate over tokens
     while (stateStack.length > 0) {
       const {value: token, done} = tokenIter.next()
       if (done) {
@@ -456,10 +462,10 @@ export class GrammarBase {
           treeStack.push(new Tree(token.raw))
           break
         }
-        // action is Accept
-        return treeStack[0]
+        throw 'received after accepting'
       }
     }
+    // reducing and accepting
     while (stateStack.length > 0) {
       const lastState = stateStack.at(-1)!
       const action = slrTable.rows[lastState.code].body.action(this.end)
