@@ -1,9 +1,9 @@
-import type {Term} from "./types";
+import type {Term} from "./types"
 
 export class Token {
   constructor(
     readonly type: Term,
-    readonly value: string,
+    readonly raw: string,
   ) {
   }
 }

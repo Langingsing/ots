@@ -1,5 +1,6 @@
 import {Grammar} from "./grammar.js"
 import {Lexer, Rule} from "./lexer.js"
+import {filter} from "./utils.js"
 
 const grammar = new Grammar([
   ['Expr', [
@@ -18,17 +19,17 @@ const grammar = new Grammar([
   ]],
 ])
 // console.log(grammar.rules)
-// console.log('terms')
-// console.log(grammar.terms)
-// console.log('nts')
-// console.log(grammar.nonTerms)
-// console.log(grammar.epsilonProducers)
-// console.log(grammar.first)
-// console.log(grammar.follow)
-// console.log(grammar.calcSLRTable().toString())
+console.log('terms')
+console.log(grammar.terms)
+console.log('nts')
+console.log(grammar.nonTerms)
+console.log(grammar.epsilonProducers)
+console.log(grammar.first)
+console.log(grammar.follow)
+console.log(grammar.calcSLRTable().toString())
 
 const str = '3 * (4 + 56)'
-console.log([...new Lexer([
+const tokens = new Lexer([
   Rule.NUM,
   ['(', /\(/],
   [')', /\)/],
@@ -37,4 +38,9 @@ console.log([...new Lexer([
   ['*', /\*/],
   ['/', /\//],
   Rule.BLANK,
-]).parse(str)])
+]).parse(str)
+const symTree = grammar.parse(
+  filter(tokens, token => token.type != Rule.BLANK[0])
+)
+
+console.log(symTree)

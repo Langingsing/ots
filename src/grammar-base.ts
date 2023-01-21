@@ -4,7 +4,9 @@ import {MapToSet} from "./map-to-set.js"
 import {DFA, ItemRight, StateData} from "./state.js"
 import type {NT, Sym, Term} from "./types"
 import {SLRTable} from "./slr-table.js"
-import {Reduce, Shift} from "./action.js"
+import {EAction, Reduce, Shift} from "./action.js"
+import {Token} from "./lexer.js"
+import {Tree} from "./tree.js"
 
 export class GrammarBase {
   private readonly rules: Map<NT, Sym[][]>
@@ -362,8 +364,8 @@ export class GrammarBase {
     }
   }
 
-  calcSLRTable() {
-    const dfaNodeList = [...this.calcDFA().closure()]
+  calcSLRTable(dfa: Readonly<DFA> = this.calcDFA()) {
+    const dfaNodeList = [...dfa.closure()]
     const table = new SLRTable(
       dfaNodeList.map(node => node.data),
       this.terms,
@@ -405,6 +407,50 @@ export class GrammarBase {
       }
     }
     return table
+  }
+
+  parse(tokens: Iterable<Token>) {
+    const tokenIter = tokens[Symbol.iterator]()
+    const dfa = this.calcDFA()
+    const slrTable = this.calcSLRTable(dfa)
+    const stateStack = [dfa.data]
+    const treeStack: Tree<Sym>[] = []
+    const indices: ReadonlyMap<StateData, number> = slrTable.rows.reduce((map, {state}, i) => {
+      map.set(state, i)
+      return map
+    }, new Map<StateData, number>())
+    while (stateStack.length > 0) {
+      const {value: token, done} = tokenIter.next()
+      if (done) {
+        throw 'early eof'
+      }
+      for (; ;) {
+        const lastState = stateStack.at(-1)!
+        const action = slrTable.rows[indices.get(lastState)!].body.action(token.type)
+        if (!action) {
+          throw 'syntax error'
+        }
+        if (action.isReduce()) {
+          const {nt, seq} = action
+          // pop seq.length states
+          stateStack.splice(stateStack.length - seq.length)
+          const children = treeStack.splice(treeStack.length - seq.length)
+          const lastState = stateStack.at(-1)!
+          const next = slrTable.rows[indices.get(lastState)!].body.goto(nt)!
+          stateStack.push(next)
+          treeStack.push(new Tree(nt, children))
+          continue
+        }
+        if (action.isShift()) {
+          const {next} = action as Shift
+          stateStack.push(next)
+          treeStack.push(new Tree(token.raw))
+          break
+        }
+        // action is Accept
+        return treeStack[0]
+      }
+    }
   }
 
   isEmpty() {

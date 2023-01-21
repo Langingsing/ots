@@ -3,8 +3,8 @@ import {StateData} from "./state.js"
 
 export const enum EAction {
   Reduce,
-  Accept,
-  Shift
+  Shift,
+  Accept
 }
 
 export abstract class Action {
@@ -40,14 +40,6 @@ export class Reduce extends Action {
   }
 }
 
-export class Accept extends Action {
-  readonly type = EAction.Accept
-
-  override toString() {
-    return 'Acc'
-  }
-}
-
 export class Shift extends Action {
   readonly type = EAction.Shift
 
@@ -59,5 +51,13 @@ export class Shift extends Action {
 
   override toString() {
     return 'S' + this.next
+  }
+}
+
+export class Accept extends Action {
+  readonly type = EAction.Accept
+
+  override toString() {
+    return 'Acc'
   }
 }
