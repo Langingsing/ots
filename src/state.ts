@@ -1,6 +1,6 @@
-import {getOrSetDefault, arrEq, count, mapEq, includes, every, map, filter} from "./utils.js"
+import {getOrSetDefault, arrEq, count, mapEq, includes, every, map, filter, combine, intersect} from "./utils.js"
 import {Graph} from "./graph.js"
-import type {Sym, NT} from "./types"
+import type {Sym, NT, Term} from "./types"
 
 export class ItemRight {
   constructor(
@@ -46,10 +46,9 @@ export class ItemRight {
 
 export class StateData extends Map<Sym, ItemRight[]> {
   constructor(
-    public code = -1,
-    entries?: readonly (readonly [Sym, ItemRight[]])[] | null
+    public code = -1
   ) {
-    super(entries)
+    super()
   }
 
   getOrSetDefault(sym: Sym) {
@@ -114,8 +113,40 @@ export class StateData extends Map<Sym, ItemRight[]> {
     })
   }
 
-  static codeLt(a: Readonly<StateData>, b: Readonly<StateData>) {
-    return a.code < b.code
+  throwIfConflict(follow: ReadonlyMap<NT, ReadonlySet<Term>>) {
+    const productionsToReduce = [...this.productionsToReduce()]
+    if (productionsToReduce.length == 0) {
+      return
+    }
+    const followSets = productionsToReduce.map(([nt]) => {
+      return follow.get(nt)!
+    })
+    const symsToShift = new Set(map(
+      filter(
+        this.itemRights(),
+        item => item.toShift()
+      ),
+      item => item.atDot()
+    ))
+    if (symsToShift.size > 0) {
+      const valid = followSets.every(followSet => {
+        return intersect(symsToShift, followSet).next().done!
+      })
+      if (!valid) {
+        throw 'reduce-shift conflict'
+      }
+    }
+    if (productionsToReduce.length > 1) {
+      const valid = every(
+        combine(followSets, 2),
+        ([a, b]) => {
+          return intersect(a, b).next().done!
+        }
+      )
+      if (!valid) {
+        throw 'reduce-reduce conflict'
+      }
+    }
   }
 
   toString() {

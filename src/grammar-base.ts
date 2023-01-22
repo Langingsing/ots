@@ -1,4 +1,4 @@
-import {combine, every, find, findLast, getOrSetDefault, intersect, map, zip} from "./utils.js"
+import {find, findLast, getOrSetDefault, map} from "./utils.js"
 import {ProdIndex} from "./prod-index.js"
 import {MapToSet} from "./map-to-set.js"
 import {DFA, ItemRight, StateData} from "./state.js"
@@ -386,23 +386,9 @@ export class GrammarBase {
           row.setAction(edge, new Shift(to))
         }
       }
-      const {follow} = this
-      const productionsToReduce = [...from.productionsToReduce()]
-      const followSets = productionsToReduce.map(([nt]) => {
-        return follow.get(nt)!
-      })
-      if (productionsToReduce.length > 1) {
-        const valid = !every(
-          combine(followSets, 2), ([a, b]) => {
-            return intersect(a, b).next().done!
-          }
-        )
-        if (!valid) {
-          throw 'reduce-reduce conflict'
-        }
-      }
-      for (const [[nt, {seq}], followSet] of zip(productionsToReduce, followSets)) {
-        for (const term of followSet) {
+      from.throwIfConflict(this.follow)
+      for (const [nt, {seq}] of from.productionsToReduce()) {
+        for (const term of this.follow.get(nt)!) {
           row.setAction(term, new Reduce(nt, seq, this.seqCode(nt, seq)))
         }
       }
