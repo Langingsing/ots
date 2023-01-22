@@ -1,4 +1,4 @@
-import {find, getOrSetDefault} from "./utils.js";
+import {getOrSetDefault} from "./utils.js"
 
 /**
  * single-directed graph
@@ -25,16 +25,6 @@ export class Graph<T, E> extends Map<E, Graph<T, E>> {
 
   outputs() {
     return this.values()
-  }
-
-  * edges() {
-    for (const [edge, node] of this) {
-      yield [edge, node.data] as [E, T]
-    }
-  }
-
-  find(predicate: (item: T) => boolean) {
-    return find(this.closure(), node => predicate(node.data))
   }
 
   link(edge: E, dest: this) {

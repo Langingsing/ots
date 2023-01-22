@@ -32,8 +32,4 @@ export class Grammar extends GrammarBase {
   get follow() {
     return this._follow ??= super.follow
   }
-
-  protected invalidateCache() {
-    this._terms = this._alphabet = this._nonTerms = this._epsilonProducers = this._first = this._follow = undefined
-  }
 }

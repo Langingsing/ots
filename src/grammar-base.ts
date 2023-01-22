@@ -376,7 +376,7 @@ export class GrammarBase {
     )
     for (const fromNode of dfaNodeList) {
       const {data: from} = fromNode
-      const row = table.rows[from.code].body
+      const row = table.rows[from.code]
 
       for (const [edge, toNode] of fromNode) {
         const {data: to} = toNode
@@ -393,7 +393,7 @@ export class GrammarBase {
       })
       if (productionsToReduce.length > 1) {
         const valid = !every(
-          combine([...followSets], 2), ([a, b]) => {
+          combine(followSets, 2), ([a, b]) => {
             return intersect(a, b).next().done!
           }
         )
@@ -408,9 +408,9 @@ export class GrammarBase {
       }
     }
     // set Accept
-    const acceptingState = table.rows[0].body.goto(this.start!)!
+    const acceptingState = table.rows[0].goto(this.start!)!
     const acceptingRow = table.rows[acceptingState.code]
-    acceptingRow.body.setAction(this.end, new Accept())
+    acceptingRow.setAction(this.end, new Accept())
 
     return table
   }
@@ -436,7 +436,7 @@ export class GrammarBase {
     for (const token of tokens) {
       for (; ;) {
         const lastState = stateStack.at(-1)!
-        const action = slrTable.rows[lastState.code].body.action(token.type)
+        const action = slrTable.rows[lastState.code].action(token.type)
         if (!action) {
           throw 'syntax error'
         }
@@ -446,7 +446,7 @@ export class GrammarBase {
           stateStack.splice(stateStack.length - seq.length)
           const children = treeStack.splice(treeStack.length - seq.length)
           const lastState = stateStack.at(-1)!
-          const next = slrTable.rows[lastState.code].body.goto(nt)!
+          const next = slrTable.rows[lastState.code].goto(nt)!
           stateStack.push(next)
           treeStack.push(new Tree(nt, children))
           continue
@@ -463,7 +463,7 @@ export class GrammarBase {
     // reducing and accepting
     for (; ;) {
       const lastState = stateStack.at(-1)!
-      const action = slrTable.rows[lastState.code].body.action(this.end)
+      const action = slrTable.rows[lastState.code].action(this.end)
       if (!action) {
         throw 'syntax error'
       }
@@ -473,7 +473,7 @@ export class GrammarBase {
         stateStack.splice(stateStack.length - seq.length)
         const children = treeStack.splice(treeStack.length - seq.length)
         const lastState = stateStack.at(-1)!
-        const next = slrTable.rows[lastState.code].body.goto(nt)!
+        const next = slrTable.rows[lastState.code].goto(nt)!
         stateStack.push(next)
         treeStack.push(new Tree(nt, children))
       } else {

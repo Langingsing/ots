@@ -13,10 +13,6 @@ export class Table<T> extends Array<Array<T>> {
     return this.reduce((width, row) => Math.max(width, row.length), 0)
   }
 
-  row(i: number) {
-    return this[i]
-  }
-
   newRow() {
     const row: T[] = []
     this.push(row)
@@ -70,6 +66,6 @@ export class FmtTable extends Table<string> {
   }
 
   toString() {
-    return this.map(row => row.join('\t')).join('\n')
+    return this.map(row => row.join(this.cellSplitter)).join('\n')
   }
 }

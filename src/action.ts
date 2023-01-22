@@ -18,10 +18,6 @@ export abstract class Action {
     return this.type == EAction.Shift
   }
 
-  isAccept(): this is Accept {
-    return this.type == EAction.Accept
-  }
-
   abstract toString(): string
 }
 

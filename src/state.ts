@@ -1,4 +1,4 @@
-import {getOrSetDefault, arrEq, count, mapEq, includes, some, every, map, filter} from "./utils.js"
+import {getOrSetDefault, arrEq, count, mapEq, includes, every, map, filter} from "./utils.js"
 import {Graph} from "./graph.js"
 import type {Sym, NT} from "./types"
 
@@ -42,13 +42,6 @@ export class ItemRight {
   toShift() {
     return !this.toReduce()
   }
-
-  ord(other: Readonly<this>) {
-    const cmp = this.seq > other.seq
-    if (cmp)
-      return cmp
-    return this.dotPos > other.dotPos
-  }
 }
 
 export class StateData extends Map<Sym, ItemRight[]> {
@@ -78,10 +71,6 @@ export class StateData extends Map<Sym, ItemRight[]> {
 
   productionsToReduce() {
     return filter(this.productions(), ([_, item]) => item.toReduce())
-  }
-
-  canReduce() {
-    return some(this.itemRights(), item => item.toReduce())
   }
 
   toReduce() {

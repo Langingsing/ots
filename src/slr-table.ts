@@ -1,10 +1,10 @@
 import {StateData} from "./state.js"
-import type {NT, Sym, Term} from "./types"
+import type {NT, Term} from "./types"
 import type {Action} from "./action"
 import {FmtTable} from "./table.js"
 import {comparingNum} from "./utils.js"
 
-export class BodyRow {
+export class Row {
   constructor(
     private readonly actionMap = new Map<Term, Action>(),
     private readonly gotoMap = new Map<NT, StateData>(),
@@ -28,35 +28,17 @@ export class BodyRow {
   }
 }
 
-export class Row {
-  public readonly body = new BodyRow()
-
-  constructor(
-    public readonly state: Readonly<StateData>,
-  ) {
-  }
-}
-
 export class SLRTable {
   public readonly rows: readonly Row[]
 
   constructor(
-    states: readonly StateData[],
-    public readonly terms: ReadonlySet<Term>,
-    public readonly nts: ReadonlySet<NT>,
-    public readonly end: Term,
+    states: StateData[],
+    readonly terms: ReadonlySet<Term>,
+    readonly nts: ReadonlySet<NT>,
+    readonly end: Term,
   ) {
-    this.rows = states
-      .map(state => new Row(state))
-      .sort(comparingNum(row => row.state.code))
-  }
-
-  private isActionKey(sym: Sym) {
-    return this.terms.has(sym)
-  }
-
-  private isGotoKey(sym: Sym) {
-    return this.nts.has(sym)
+    states.sort(comparingNum(state => state.code))
+    this.rows = states.map(() => new Row())
   }
 
   toString() {
@@ -65,14 +47,15 @@ export class SLRTable {
     const nts = [...this.nts]
     const headers = strTbl.newRow()
     headers.push('', ...terms, ...nts)
-    for (const {state, body} of this.rows) {
-      const row = strTbl.newRow()
-      row.push(state.toString())
+    for (let i = 0; i < this.rows.length; i++) {
+      const row = this.rows[i]
+      const strRow = strTbl.newRow()
+      strRow.push(i.toString())
       for (const term of terms) {
-        row.push(body.action(term)?.toString() ?? '')
+        strRow.push(row.action(term)?.toString() ?? '')
       }
       for (const nt of nts) {
-        row.push(body.goto(nt)?.toString() ?? '')
+        strRow.push(row.goto(nt)?.toString() ?? '')
       }
     }
     return strTbl.toString()
