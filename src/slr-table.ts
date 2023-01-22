@@ -1,9 +1,8 @@
-import type {NT, Term} from "./types"
+import type {NT, Term, Sym} from "./types"
 import type {Action, State} from "./action"
 import {FmtTable} from "./table.js"
-import {indexOfMaxValue} from "./utils";
-import {Accept, Reduce, Shift} from "./action";
-import {Sym} from "./types";
+import {indexOfMaxValue} from "./utils.js"
+import {Accept, Reduce, Shift} from "./action.js"
 
 export class Row {
   constructor(

@@ -555,4 +555,13 @@ export class GrammarBase {
   isEmpty() {
     return this.rules.size == 0
   }
+
+  toString() {
+    return this.ruleEntries.map(([nt, rhs]) => {
+      return `${nt} -> ${
+        rhs.map(seq => seq.join(' '))
+          .join(`\n${' '.repeat(nt.length + 2)}| `)
+      }`
+    }).join('\n')
+  }
 }
