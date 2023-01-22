@@ -31,6 +31,16 @@ export function extendSet<T>(set: Set<T>, items: Iterable<T>) {
   return set
 }
 
+export function indexOfMaxValue(arr: number[]) {
+  let ret = 0
+  for (let i = 1; i < arr.length; i++) {
+    if (arr[i] > arr[ret]) {
+      ret = i
+    }
+  }
+  return ret
+}
+
 export function arrEq<T>(a: readonly T[], b: readonly T[], eq: eq<T> = Object.is) {
   if (a == b) {
     return true

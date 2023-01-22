@@ -26,6 +26,12 @@ export class GrammarBase {
     this.end = end
   }
 
+  static ruleEntriesToProductions(ruleEntries: readonly [NT, Sym[][]][]) {
+    return ruleEntries.flatMap(([nt, rhs]) => {
+      return rhs.map(seq => [nt, seq] as [NT, Sym[]])
+    })
+  }
+
   get alphabet() {
     return this.calcAlphabetSet()
   }
