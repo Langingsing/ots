@@ -3,7 +3,7 @@ import {ProdIndex} from "./prod-index.js"
 import {MapToSet} from "./map-to-set.js"
 import {DFA, ItemRight, StateData} from "./state.js"
 import type {NT, Sym, Term} from "./types"
-import {SLRTable} from "./slr-table.js"
+import {Row, SLRTable} from "./slr-table.js"
 import {Accept, Reduce, Shift} from "./action.js"
 import {Token} from "./lexer.js"
 import {Tree} from "./tree.js"
@@ -394,8 +394,16 @@ export class GrammarBase {
       }
     }
     // set Accept
-    const acceptingState = table.rows[0].goto(this.start!)!
-    const acceptingRow = table.rows[acceptingState.code]
+    const acceptingState = table.rows[0].goto(this.start!)
+    let acceptingRow: Row
+    if (acceptingState) {
+      acceptingRow = table.rows[acceptingState.code]
+    } else {
+      acceptingRow = new Row()
+      const code = table.rows.length
+      table.rows.push(acceptingRow)
+      table.rows[0].setGoto(this.start!, new StateData(code))
+    }
     acceptingRow.setAction(this.end, new Accept())
 
     return table

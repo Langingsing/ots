@@ -40,6 +40,7 @@ console.log(grammar.follow)
 
 const str = '3 * (4 + 56)'
 const tokens = new Lexer([
+  Rule.BLANK,
   Rule.NUM,
   ['(', /\(/],
   [')', /\)/],
@@ -47,7 +48,6 @@ const tokens = new Lexer([
   ['-', /-/],
   ['*', /\*/],
   ['/', /\//],
-  Rule.BLANK,
 ]).parse(str)
 // const symTree = grammar.parse(
 //   filter(tokens, token => token.type != Rule.BLANK[0])

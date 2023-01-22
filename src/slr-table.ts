@@ -29,7 +29,7 @@ export class Row {
 }
 
 export class SLRTable {
-  public readonly rows: readonly Row[]
+  public readonly rows: Row[]
 
   constructor(
     states: StateData[],
