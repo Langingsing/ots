@@ -413,6 +413,77 @@ export class GrammarBase {
     return code
   }
 
+  singleSSDD<V>(
+    tokens: Iterable<Token>,
+    semanticRules: ((...args: (V | string)[]) => V)[] = []
+  ) {
+    const name = 'raw'
+    return this.sSDD(tokens, semanticRules.map(rule => (...maps: Map<string, V | string>[]) => {
+      const args = maps.map(map => map.get(name)!)
+      const ntVal = rule(...args)
+      return new Map([[name, ntVal]])
+    })).get(name) as V
+  }
+
+  sSDD<V>(
+    tokens: Iterable<Token>,
+    semanticRules: ((...args: Map<string, V | string>[]) => Map<string, V>)[] = []
+  ) {
+    const dfa = this.calcDFA()
+    const slrTable = this.calcSLRTable(dfa)
+    const stateStack = [dfa.data]
+    const values: Map<string, V | string>[] = []
+    // iterate over tokens
+    for (const token of tokens) {
+      for (; ;) {
+        const lastState = stateStack.at(-1)!
+        const action = slrTable.rows[lastState.code].action(token.type)
+        if (!action) {
+          throw 'syntax error'
+        }
+        if (action.isReduce()) {
+          handleReduce(action)
+          continue
+        }
+        if (action.isShift()) {
+          const {next} = action as Shift
+          stateStack.push(next)
+          values.push(new Map([['raw', token.raw]]))
+          break
+        }
+        throw 'received after accepting'
+      }
+    }
+    // reducing and accepting
+    for (; ;) {
+      const lastState = stateStack.at(-1)!
+      const action = slrTable.rows[lastState.code].action(this.end)
+      if (!action) {
+        throw 'syntax error'
+      }
+      if (action.isReduce()) {
+        handleReduce(action)
+      } else {
+        // action is Accept
+        break
+      }
+    }
+    return values[0]
+
+    function handleReduce(action: Reduce) {
+      const {nt, seq, code} = action
+      // pop seq.length states
+      stateStack.splice(stateStack.length - seq.length)
+      const children = values.splice(values.length - seq.length)
+      const lastState = stateStack.at(-1)!
+      const next = slrTable.rows[lastState.code].goto(nt)!
+      stateStack.push(next)
+
+      const semanticRule = semanticRules[code] ??= () => new Map()
+      values.push(semanticRule(...children))
+    }
+  }
+
   parse(tokens: Iterable<Token>) {
     const dfa = this.calcDFA()
     const slrTable = this.calcSLRTable(dfa)
@@ -427,14 +498,7 @@ export class GrammarBase {
           throw 'syntax error'
         }
         if (action.isReduce()) {
-          const {nt, seq} = action
-          // pop seq.length states
-          stateStack.splice(stateStack.length - seq.length)
-          const children = treeStack.splice(treeStack.length - seq.length)
-          const lastState = stateStack.at(-1)!
-          const next = slrTable.rows[lastState.code].goto(nt)!
-          stateStack.push(next)
-          treeStack.push(new Tree(nt, children))
+          handleReduce(action)
           continue
         }
         if (action.isShift()) {
@@ -454,20 +518,24 @@ export class GrammarBase {
         throw 'syntax error'
       }
       if (action.isReduce()) {
-        const {nt, seq} = action
-        // pop seq.length states
-        stateStack.splice(stateStack.length - seq.length)
-        const children = treeStack.splice(treeStack.length - seq.length)
-        const lastState = stateStack.at(-1)!
-        const next = slrTable.rows[lastState.code].goto(nt)!
-        stateStack.push(next)
-        treeStack.push(new Tree(nt, children))
+        handleReduce(action)
       } else {
         // action is Accept
         break
       }
     }
     return treeStack[0]
+
+    function handleReduce(action: Reduce) {
+      const {nt, seq, code} = action
+      // pop seq.length states
+      stateStack.splice(stateStack.length - seq.length)
+      const children = treeStack.splice(treeStack.length - seq.length)
+      const lastState = stateStack.at(-1)!
+      const next = slrTable.rows[lastState.code].goto(nt)!
+      stateStack.push(next)
+      treeStack.push(new Tree(nt, children))
+    }
   }
 
   isEmpty() {

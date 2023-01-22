@@ -18,6 +18,16 @@ const grammar = new Grammar([
     ['num']
   ]],
 ])
+const semanticRules: ((...args: any[]) => number)[] = [
+  (expr, plus, term) => expr + term,
+  (expr, minus, term) => expr - term,
+  (term) => term,
+  (term, times, factor) => term * factor,
+  (term, divisor, factor) => term / factor,
+  (factor) => factor,
+  (paren, expr, closeParen) => expr,
+  (num) => Number(num),
+]
 // console.log(grammar.rules)
 console.log('terms')
 console.log(grammar.terms)
@@ -26,7 +36,7 @@ console.log(grammar.nonTerms)
 console.log(grammar.epsilonProducers)
 console.log(grammar.first)
 console.log(grammar.follow)
-console.log(grammar.calcSLRTable().toString())
+// console.log(grammar.calcSLRTable().toString())
 
 const str = '3 * (4 + 56)'
 const tokens = new Lexer([
@@ -39,8 +49,12 @@ const tokens = new Lexer([
   ['/', /\//],
   Rule.BLANK,
 ]).parse(str)
-const symTree = grammar.parse(
-  filter(tokens, token => token.type != Rule.BLANK[0])
-)
+// const symTree = grammar.parse(
+//   filter(tokens, token => token.type != Rule.BLANK[0])
+// )
 
-console.log(symTree)
+// console.log(symTree.toString())
+console.log(grammar.singleSSDD(
+  filter(tokens, token => token.type != Rule.BLANK[0]),
+  semanticRules
+))

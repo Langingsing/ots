@@ -27,7 +27,7 @@ export class Reduce extends Action {
   constructor(
     readonly nt: NT,
     readonly seq: readonly Sym[],
-    private readonly code: number,
+    readonly code: number,
   ) {
     super()
   }
