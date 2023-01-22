@@ -1,5 +1,6 @@
 import type {NT, Sym} from "./types"
-import {StateData} from "./state.js"
+
+export type State = number
 
 export const enum EAction {
   Reduce,
@@ -41,7 +42,7 @@ export class Shift extends Action {
   readonly type = EAction.Shift
 
   constructor(
-    public readonly next: StateData
+    public readonly next: State
   ) {
     super()
   }

@@ -1,13 +1,11 @@
-import {StateData} from "./state.js"
 import type {NT, Term} from "./types"
-import type {Action} from "./action"
+import type {Action, State} from "./action"
 import {FmtTable} from "./table.js"
-import {comparingNum} from "./utils.js"
 
 export class Row {
   constructor(
     private readonly actionMap = new Map<Term, Action>(),
-    private readonly gotoMap = new Map<NT, StateData>(),
+    private readonly gotoMap = new Map<NT, State>(),
   ) {
   }
 
@@ -23,7 +21,7 @@ export class Row {
     this.actionMap.set(term, action)
   }
 
-  setGoto(nt: NT, state: StateData) {
+  setGoto(nt: NT, state: State) {
     this.gotoMap.set(nt, state)
   }
 }
@@ -32,13 +30,12 @@ export class SLRTable {
   public readonly rows: Row[]
 
   constructor(
-    states: StateData[],
+    stateCount: number,
     readonly terms: ReadonlySet<Term>,
     readonly nts: ReadonlySet<NT>,
     readonly end: Term,
   ) {
-    states.sort(comparingNum(state => state.code))
-    this.rows = states.map(() => new Row())
+    this.rows = Array.from({length: stateCount}, () => new Row())
   }
 
   toString() {

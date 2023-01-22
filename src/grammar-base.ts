@@ -369,7 +369,7 @@ export class GrammarBase {
   calcSLRTable(dfa: Readonly<DFA> = this.calcDFA()) {
     const dfaNodeList = dfa.closure()
     const table = new SLRTable(
-      [...map(dfaNodeList, node => node.data)],
+      dfaNodeList.size,
       this.terms,
       this.nonTerms,
       this.end
@@ -379,7 +379,7 @@ export class GrammarBase {
       const row = table.rows[from.code]
 
       for (const [edge, toNode] of fromNode) {
-        const {data: to} = toNode
+        const {data: {code: to}} = toNode
         if (this.isNonTerm(edge)) {
           row.setGoto(edge, to)
         } else {
@@ -397,12 +397,12 @@ export class GrammarBase {
     const acceptingState = table.rows[0].goto(this.start!)
     let acceptingRow: Row
     if (acceptingState) {
-      acceptingRow = table.rows[acceptingState.code]
+      acceptingRow = table.rows[acceptingState]
     } else {
       acceptingRow = new Row()
       const code = table.rows.length
       table.rows.push(acceptingRow)
-      table.rows[0].setGoto(this.start!, new StateData(code))
+      table.rows[0].setGoto(this.start!, code)
     }
     acceptingRow.setAction(this.end, new Accept())
 
@@ -439,13 +439,13 @@ export class GrammarBase {
   ) {
     const dfa = this.calcDFA()
     const slrTable = this.calcSLRTable(dfa)
-    const stateStack = [dfa.data]
+    const stateStack = [dfa.data.code]
     const values: Map<string, V | string>[] = []
     // iterate over tokens
     for (const token of tokens) {
       for (; ;) {
         const lastState = stateStack.at(-1)!
-        const action = slrTable.rows[lastState.code].action(token.type)
+        const action = slrTable.rows[lastState].action(token.type)
         if (!action) {
           throw 'syntax error'
         }
@@ -465,7 +465,7 @@ export class GrammarBase {
     // reducing and accepting
     for (; ;) {
       const lastState = stateStack.at(-1)!
-      const action = slrTable.rows[lastState.code].action(this.end)
+      const action = slrTable.rows[lastState].action(this.end)
       if (!action) {
         throw 'syntax error'
       }
@@ -484,7 +484,7 @@ export class GrammarBase {
       stateStack.splice(stateStack.length - seq.length)
       const children = values.splice(values.length - seq.length)
       const lastState = stateStack.at(-1)!
-      const next = slrTable.rows[lastState.code].goto(nt)!
+      const next = slrTable.rows[lastState].goto(nt)!
       stateStack.push(next)
 
       const semanticRule = semanticRules[code] ??= () => new Map()
@@ -495,13 +495,13 @@ export class GrammarBase {
   parse(tokens: Iterable<Token>) {
     const dfa = this.calcDFA()
     const slrTable = this.calcSLRTable(dfa)
-    const stateStack = [dfa.data]
+    const stateStack = [dfa.data.code]
     const treeStack: Tree<Sym>[] = []
     // iterate over tokens
     for (const token of tokens) {
       for (; ;) {
         const lastState = stateStack.at(-1)!
-        const action = slrTable.rows[lastState.code].action(token.type)
+        const action = slrTable.rows[lastState].action(token.type)
         if (!action) {
           throw 'syntax error'
         }
@@ -521,7 +521,7 @@ export class GrammarBase {
     // reducing and accepting
     for (; ;) {
       const lastState = stateStack.at(-1)!
-      const action = slrTable.rows[lastState.code].action(this.end)
+      const action = slrTable.rows[lastState].action(this.end)
       if (!action) {
         throw 'syntax error'
       }
@@ -540,7 +540,7 @@ export class GrammarBase {
       stateStack.splice(stateStack.length - seq.length)
       const children = treeStack.splice(treeStack.length - seq.length)
       const lastState = stateStack.at(-1)!
-      const next = slrTable.rows[lastState.code].goto(nt)!
+      const next = slrTable.rows[lastState].goto(nt)!
       stateStack.push(next)
       treeStack.push(new Tree(nt, children))
     }

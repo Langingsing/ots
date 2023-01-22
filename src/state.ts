@@ -148,10 +148,6 @@ export class StateData extends Map<Sym, ItemRight[]> {
       }
     }
   }
-
-  toString() {
-    return this.code.toString()
-  }
 }
 
 export class DFA extends Graph<StateData, Sym> {
