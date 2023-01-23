@@ -1,16 +1,4 @@
-import {
-  getOrSetDefault,
-  arrEq,
-  count,
-  mapEq,
-  every,
-  map,
-  filter,
-  combine,
-  intersect,
-  setEq,
-  extendSet, some, flagSome, arrUnorderedEq, indicesInArr, zip
-} from "./utils.js"
+import {arr, iter, map, set} from "./utils.js"
 import {Graph} from "./graph.js"
 import type {Sym, NT, Term} from "./types"
 
@@ -52,7 +40,7 @@ export class ItemRight {
   }
 
   lookAheadEq(other: Readonly<this>) {
-    return setEq(this.lookAhead, other.lookAhead)
+    return set.setEq(this.lookAhead, other.lookAhead)
   }
 
   eq(other: Readonly<this>) {
@@ -60,7 +48,7 @@ export class ItemRight {
   }
 
   extendLookAhead(terms: Iterable<Term>) {
-    return extendSet(this.lookAhead, terms)
+    return set.extendSet(this.lookAhead, terms)
   }
 
   get length() {
@@ -84,15 +72,15 @@ export class StateData extends Map<Sym, ItemRight[]> {
   }
 
   getOrSetDefault(sym: Sym) {
-    return getOrSetDefault(this, sym, [])
+    return map.getOrSetDefault(this, sym, [])
   }
 
   extend(sym: Sym, items: Iterable<ItemRight>) {
     const arr = this.getOrSetDefault(sym)
-    return flagSome(items, itemRight => {
+    return iter.flagSome(items, itemRight => {
       const sameCore = arr.find(item => item.coreEq(itemRight))
       if (sameCore) {
-        const extended = extendSet(sameCore.lookAhead, itemRight.lookAhead)
+        const extended = set.extendSet(sameCore.lookAhead, itemRight.lookAhead)
         return extended > 0
       }
       arr.push(itemRight)
@@ -101,11 +89,11 @@ export class StateData extends Map<Sym, ItemRight[]> {
   }
 
   itemRights() {
-    return map(this.productions(), ([_, item]) => item)
+    return iter.map(this.productions(), ([_, item]) => item)
   }
 
   productionsToReduce() {
-    return filter(this.productions(), ([_, item]) => item.toReduce())
+    return iter.filter(this.productions(), ([_, item]) => item.toReduce())
   }
 
   toReduce() {
@@ -118,7 +106,7 @@ export class StateData extends Map<Sym, ItemRight[]> {
   }
 
   toShift() {
-    return every(this.itemRights(), item => item.toShift())
+    return iter.every(this.itemRights(), item => item.toShift())
   }
 
   * productions() {
@@ -140,30 +128,30 @@ export class StateData extends Map<Sym, ItemRight[]> {
   }
 
   count() {
-    return count(this.itemRights())
+    return iter.count(this.itemRights())
   }
 
   coreEq(other: Readonly<this>) {
-    return mapEq(this, other, (a, b) => {
-      return arrUnorderedEq(a, b, (x, y) => x.coreEq(y))
+    return map.mapEq(this, other, (a, b) => {
+      return arr.arrUnorderedEq(a, b, (x, y) => x.coreEq(y))
     })
   }
 
   lookAheadEq(other: Readonly<this>) {
-    return mapEq(this, other, (a, b) => {
-      return arrUnorderedEq(a, b, (x, y) => x.lookAheadEq(y))
+    return map.mapEq(this, other, (a, b) => {
+      return arr.arrUnorderedEq(a, b, (x, y) => x.lookAheadEq(y))
     })
   }
 
   extendLookAhead(other: this) {
     for (const [nt, otherItemRights] of other) {
       const thisItemRights = this.get(nt)!
-      const indices = indicesInArr(
+      const indices = arr.indicesInArr(
         thisItemRights,
         otherItemRights,
         (a, b) => a.coreEq(b)
       )
-      for (const [thisItemRight, index] of zip(thisItemRights, indices)) {
+      for (const [thisItemRight, index] of iter.zip(thisItemRights, indices)) {
         const otherItemRight = otherItemRights[index]
         thisItemRight.extendLookAhead(otherItemRight.lookAhead)
       }
@@ -178,8 +166,8 @@ export class StateData extends Map<Sym, ItemRight[]> {
     const followSets = productionsToReduce.map(([nt]) => {
       return follow.get(nt)!
     })
-    const symsToShift = new Set(map(
-      filter(
+    const symsToShift = new Set(iter.map(
+      iter.filter(
         this.itemRights(),
         item => item.toShift()
       ),
@@ -187,17 +175,17 @@ export class StateData extends Map<Sym, ItemRight[]> {
     ))
     if (symsToShift.size > 0) {
       const valid = followSets.every(followSet => {
-        return intersect(symsToShift, followSet).next().done!
+        return iter.intersect(symsToShift, followSet).next().done!
       })
       if (!valid) {
         throw 'reduce-shift conflict'
       }
     }
     if (productionsToReduce.length > 1) {
-      const valid = every(
-        combine(followSets, 2),
+      const valid = iter.every(
+        iter.combine(followSets, 2),
         ([a, b]) => {
-          return intersect(a, b).next().done!
+          return iter.intersect(a, b).next().done!
         }
       )
       if (!valid) {

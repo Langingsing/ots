@@ -1,4 +1,4 @@
-import {extendSet, filter, find, findLast, flagSome, getOrSetDefault, map} from "./utils.js"
+import {arr, iter, map, set} from "./utils.js"
 import {ProdIndex} from "./prod-index.js"
 import {MapToSet} from "./map-to-set.js"
 import {DFA, ItemRight, StateData} from "./state.js"
@@ -239,11 +239,11 @@ export class GrammarBase {
         // here `sym` is non-terminal
 
         // subscribe in `dep`
-        const list = getOrSetDefault(dep, sym, [])
+        const list = map.getOrSetDefault(dep, sym, [])
         list.push(index)
 
         // push a new index for `sym` to stack
-        const last = findLast(indexStack, item => item.nt == sym)
+        const last = arr.findLast(indexStack, item => item.nt == sym)
         const ntIndex = last?.clone().nextSeq() ?? new ProdIndex(sym)
         indexStack.push(ntIndex)
       }
@@ -308,11 +308,11 @@ export class GrammarBase {
         // here `sym` is non-terminal
 
         // subscribe in `dep`
-        const list = getOrSetDefault(dep, sym, [])
+        const list = map.getOrSetDefault(dep, sym, [])
         list.push(index)
 
         // push a new index for `sym` to stack
-        const last = findLast(indexStack, item => item.nt == sym)
+        const last = arr.findLast(indexStack, item => item.nt == sym)
         const ntIndex = last?.clone().nextSeq() ?? new ProdIndex(sym)
         indexStack.push(ntIndex)
       }
@@ -342,9 +342,9 @@ export class GrammarBase {
       for (const symbol of state.availableEdges()) {
         const nextState = this.nextStateNew(state, symbol, code)
         let nextNode = new DFA(nextState)
-        const sameCore = [...filter(nodes, state => state.data.coreEq(nextState))]
+        const sameCore = [...iter.filter(nodes, state => state.data.coreEq(nextState))]
         if (sameCore.length > 0) {
-          const sameNode = find(sameCore, state => state.data.lookAheadEq(nextState))
+          const sameNode = iter.find(sameCore, state => state.data.lookAheadEq(nextState))
           if (sameNode) {
             nextNode = sameNode
           } else {
@@ -401,8 +401,8 @@ export class GrammarBase {
 
   private closureOnState(state: StateData) {
     for (; ;) {
-      const updated = flagSome(state.values(), itemRights => {
-        return flagSome(itemRights, itemRight => {
+      const updated = iter.flagSome(state.values(), itemRights => {
+        return iter.flagSome(itemRights, itemRight => {
           if (itemRight.toReduce())
             return false
           const symbol = itemRight.atDot()
@@ -413,7 +413,7 @@ export class GrammarBase {
           const lookAhead = new Set(firstSetOfFollowingDot)
           if (firstSetOfFollowingDot.has('')) {
             lookAhead.delete('')
-            extendSet(lookAhead, itemRight.lookAhead)
+            set.extendSet(lookAhead, itemRight.lookAhead)
           }
           const newSet = this.newItemRightList(symbol, lookAhead)
           return state.extend(symbol, newSet)

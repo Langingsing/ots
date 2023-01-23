@@ -1,4 +1,4 @@
-import {map} from "./utils.js"
+import {iter} from "./utils.js"
 
 export class Tree<T> {
   constructor(
@@ -17,7 +17,7 @@ export class Tree<T> {
   }
 
   [Symbol.iterator]() {
-    return map(this.iterWithDepth(), ([node]) => node)
+    return iter.map(this.iterWithDepth(), ([node]) => node)
   }
 
   toString() {

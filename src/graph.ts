@@ -1,4 +1,4 @@
-import {getOrSetDefault} from "./utils.js"
+import {map} from "./utils.js"
 
 /**
  * single-directed graph
@@ -28,6 +28,6 @@ export class Graph<T, E> extends Map<E, Graph<T, E>> {
   }
 
   link(edge: E, dest: this) {
-    getOrSetDefault(this, edge, dest)
+    map.getOrSetDefault(this, edge, dest)
   }
 }

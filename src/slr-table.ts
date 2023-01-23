@@ -1,7 +1,7 @@
 import type {NT, Sym, Term} from "./types"
 import type {Action, State} from "./action"
 import {FmtTable} from "./table.js"
-import {indexOfMaxValue, swapMap} from "./utils.js"
+import {arr, map} from "./utils.js"
 import {Accept, Reduce, Shift} from "./action.js"
 
 export class GrammarError extends Error {
@@ -37,14 +37,14 @@ export class Row {
   }
 
   setAction(term: Term, action: Action) {
-    const old = swapMap(this.actionMap, term, action)
+    const old = map.swapMap(this.actionMap, term, action)
     if (old !== undefined && !action.eq(old)) {
       throw new ActionConflict(old, action)
     }
   }
 
   setGoto(nt: NT, state: State) {
-    const old = swapMap(this.gotoMap, nt, state)
+    const old = map.swapMap(this.gotoMap, nt, state)
     if (old !== undefined && state !== old) {
       throw new GotoConflict(old, state)
     }
@@ -64,18 +64,18 @@ export class SLRTable {
   }
 
   static from(tsvContent: string, productions: [NT, Sym[]][]) {
-    const arr = tsvContent
+    const arr2dim = tsvContent
       .split('\n')
       .map(line => {
         const row = line.split('\t')
         row.shift()
         return row
       })
-    const headers = arr.shift()
+    const headers = arr2dim.shift()
     if (!headers) {
       throw 'tsv should has a line of headers'
     }
-    const endIndex = indexOfMaxValue(headers.map(sym => {
+    const endIndex = arr.indexOfMaxValue(headers.map(sym => {
       for (const ch of sym) {
         if (ch != '$') {
           return 0
@@ -87,10 +87,10 @@ export class SLRTable {
       new Set(headers.slice(0, endIndex)),
       new Set(headers.slice(endIndex + 1)),
       headers[endIndex],
-      arr.length
+      arr2dim.length
     )
-    for (let i = 0; i < arr.length; i++) {
-      const line = arr[i]
+    for (let i = 0; i < arr2dim.length; i++) {
+      const line = arr2dim[i]
       const row = table.rows[i]
       for (let j = 0; j <= endIndex; j++) {
         const cell = line[j]

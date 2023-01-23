@@ -1,8 +1,12 @@
-import {getOrSetDefault} from "./utils.js"
+import {map} from "./utils.js"
 
 export class MapToSet<K, T> extends Map<K, Set<T>> {
+  getOrSetDefault(k: K) {
+    return map.getOrSetDefault(this, k, new Set())
+  }
+
   add(k: K, item: T) {
-    const set = getOrSetDefault(this, k, new Set())
+    const set = this.getOrSetDefault(k)
     set.add(item)
     return set
   }
@@ -11,6 +15,6 @@ export class MapToSet<K, T> extends Map<K, Set<T>> {
     for (const item of items) {
       this.add(k, item)
     }
-    return getOrSetDefault(this, k, new Set())
+    return this.getOrSetDefault(k)
   }
 }
