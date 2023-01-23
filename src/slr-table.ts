@@ -1,15 +1,32 @@
 import type {NT, Sym, Term} from "./types"
 import type {Action, State} from "./action"
 import {FmtTable} from "./table.js"
-import {indexOfMaxValue} from "./utils.js"
+import {indexOfMaxValue, swapMap} from "./utils.js"
 import {Accept, Reduce, Shift} from "./action.js"
 
-export class Row {
-  constructor(
-    private readonly actionMap = new Map<Term, Action>(),
-    private readonly gotoMap = new Map<NT, State>(),
-  ) {
+export class GrammarError extends Error {
+  name = 'GrammarError'
+}
+
+export class Conflict<T> extends GrammarError {
+  name = 'Conflict'
+
+  constructor(from: T, to: T) {
+    super(`Try to set ${to}, but there has already been ${from}.`)
   }
+}
+
+export class GotoConflict extends Conflict<State> {
+  name = 'GotoConflict'
+}
+
+export class ActionConflict extends Conflict<Action> {
+  name = 'ActionConflict'
+}
+
+export class Row {
+  private readonly actionMap = new Map<Term, Action>()
+  private readonly gotoMap = new Map<NT, State>()
 
   action(term: Term) {
     return this.actionMap.get(term)
@@ -20,11 +37,17 @@ export class Row {
   }
 
   setAction(term: Term, action: Action) {
-    this.actionMap.set(term, action)
+    const old = swapMap(this.actionMap, term, action)
+    if (old !== undefined && !action.eq(old)) {
+      throw new ActionConflict(old, action)
+    }
   }
 
   setGoto(nt: NT, state: State) {
-    this.gotoMap.set(nt, state)
+    const old = swapMap(this.gotoMap, nt, state)
+    if (old !== undefined && state !== old) {
+      throw new GotoConflict(old, state)
+    }
   }
 }
 

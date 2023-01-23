@@ -19,6 +19,10 @@ export abstract class Action {
     return this.type == EAction.Shift
   }
 
+  eq(other: Readonly<this>) {
+    return this.type == other.type
+  }
+
   abstract toString(): string
 }
 
@@ -33,6 +37,10 @@ export class Reduce extends Action {
     super()
   }
 
+  eq(other: Readonly<this>) {
+    return super.eq(other) && this.code == other.code
+  }
+
   override toString() {
     return 'R' + this.code
   }
@@ -45,6 +53,10 @@ export class Shift extends Action {
     public readonly next: State
   ) {
     super()
+  }
+
+  eq(other: Readonly<this>) {
+    return super.eq(other) && this.next == other.next
   }
 
   override toString() {

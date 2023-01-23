@@ -25,8 +25,23 @@ const grammar = new Grammar([
     ['sym', 'seq'],
   ]],
 ])
-const semanticRules: ((...args: any[]) => number)[] = [
-  (expr, plus, term) => expr + term,
+const semanticRules: ((...args: any[]) => any)[] = [
+  (prod) => new Grammar([prod]),
+  (prod, gram) => {
+    gram.push(prod)
+    return gram
+  },
+  (sym, _, rhs) => [sym, rhs],
+  (seq) => [seq],
+  (seq, _, rhs) => {
+    rhs.push(seq)
+    return rhs
+  },
+  () => [],
+  (sym, seq) => {
+    seq.push(sym)
+    return seq
+  },
 ]
 // console.log(grammar.rules)
 console.log('terms')
@@ -38,10 +53,10 @@ console.log(grammar.first)
 console.log(grammar.follow)
 console.log(grammar.calcLRTable().toString())
 
-const str = '3 * (4 + 56)'
+const str = 'A -> a | b'
 
-// const tokens = lexer.parse(str)
+const tokens = lexer.parse(str)
 // const symTree = grammar.parse(tokens)
 
 // console.log(symTree.toString())
-// console.log(grammar.sSDD(tokens, semanticRules))
+console.log(grammar.sSDD(tokens, semanticRules).toString())

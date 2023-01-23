@@ -69,6 +69,12 @@ export function indicesInArr<T>(from: readonly T[], to: readonly T[], eq: eq<T> 
   return from.map(item => to.findIndex(toItem => eq(item, toItem)))
 }
 
+export function swapMap<K, V>(map: Map<K, V>, k: K, v: V) {
+  const old = map.get(k)
+  map.set(k, v)
+  return old
+}
+
 export function setEq<K, V>(a: ReadonlySet<V>, b: ReadonlySet<V>) {
   if (a == b) {
     return true
