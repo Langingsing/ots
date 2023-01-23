@@ -413,7 +413,7 @@ export class GrammarBase {
           const lookAhead = new Set(firstSetOfFollowingDot)
           if (firstSetOfFollowingDot.has('')) {
             lookAhead.delete('')
-            set.extendSet(lookAhead, itemRight.lookAhead)
+            set.extend(lookAhead, itemRight.lookAhead)
           }
           const newSet = this.newItemRightList(symbol, lookAhead)
           return state.extend(symbol, newSet)

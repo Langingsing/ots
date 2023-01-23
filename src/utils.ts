@@ -30,7 +30,7 @@ export namespace arr {
     return ret
   }
 
-  export function arrEq<T>(a: readonly T[], b: readonly T[], eq: eq<T> = Object.is) {
+  export function eq<T>(a: readonly T[], b: readonly T[], eq: eq<T> = Object.is) {
     if (a == b) {
       return true
     }
@@ -40,7 +40,7 @@ export namespace arr {
     return a.every((item, i) => eq(item, b[i]))
   }
 
-  export function arrUnorderedEq<T>(a: readonly T[], b: readonly T[], eq: eq<T> = Object.is) {
+  export function unorderedEq<T>(a: readonly T[], b: readonly T[], eq: eq<T> = Object.is) {
     if (a == b) {
       return true
     }
@@ -67,13 +67,13 @@ export namespace map {
     return defaultV
   }
 
-  export function swapMap<K, V>(map: Map<K, V>, k: K, v: V) {
+  export function swap<K, V>(map: Map<K, V>, k: K, v: V) {
     const old = map.get(k)
     map.set(k, v)
     return old
   }
 
-  export function mapEq<K, V>(a: ReadonlyMap<K, V>, b: ReadonlyMap<K, V>, eq: eq<V> = Object.is) {
+  export function eq<K, V>(a: ReadonlyMap<K, V>, b: ReadonlyMap<K, V>, eq: eq<V> = Object.is) {
     if (a == b) {
       return true
     }
@@ -90,7 +90,7 @@ export namespace map {
 }
 
 export namespace set {
-  export function extendSet<T>(set: Set<T>, items: Iterable<T>) {
+  export function extend<T>(set: Set<T>, items: Iterable<T>) {
     const {size} = set
     for (const item of items) {
       set.add(item)
@@ -98,7 +98,7 @@ export namespace set {
     return set.size - size
   }
 
-  export function setEq<K, V>(a: ReadonlySet<V>, b: ReadonlySet<V>) {
+  export function eq<K, V>(a: ReadonlySet<V>, b: ReadonlySet<V>) {
     if (a == b) {
       return true
     }
@@ -110,6 +110,7 @@ export namespace set {
     })
   }
 }
+
 export namespace iter {
   export function find<T>(i: Iterable<T>, predicate: predicate<T>) {
     for (const item of i) {

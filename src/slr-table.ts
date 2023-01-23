@@ -37,14 +37,14 @@ export class Row {
   }
 
   setAction(term: Term, action: Action) {
-    const old = map.swapMap(this.actionMap, term, action)
+    const old = map.swap(this.actionMap, term, action)
     if (old !== undefined && !action.eq(old)) {
       throw new ActionConflict(old, action)
     }
   }
 
   setGoto(nt: NT, state: State) {
-    const old = map.swapMap(this.gotoMap, nt, state)
+    const old = map.swap(this.gotoMap, nt, state)
     if (old !== undefined && state !== old) {
       throw new GotoConflict(old, state)
     }

@@ -40,7 +40,7 @@ export class ItemRight {
   }
 
   lookAheadEq(other: Readonly<this>) {
-    return set.setEq(this.lookAhead, other.lookAhead)
+    return set.eq(this.lookAhead, other.lookAhead)
   }
 
   eq(other: Readonly<this>) {
@@ -48,7 +48,7 @@ export class ItemRight {
   }
 
   extendLookAhead(terms: Iterable<Term>) {
-    return set.extendSet(this.lookAhead, terms)
+    return set.extend(this.lookAhead, terms)
   }
 
   get length() {
@@ -80,7 +80,7 @@ export class StateData extends Map<Sym, ItemRight[]> {
     return iter.flagSome(items, itemRight => {
       const sameCore = arr.find(item => item.coreEq(itemRight))
       if (sameCore) {
-        const extended = set.extendSet(sameCore.lookAhead, itemRight.lookAhead)
+        const extended = set.extend(sameCore.lookAhead, itemRight.lookAhead)
         return extended > 0
       }
       arr.push(itemRight)
@@ -132,14 +132,14 @@ export class StateData extends Map<Sym, ItemRight[]> {
   }
 
   coreEq(other: Readonly<this>) {
-    return map.mapEq(this, other, (a, b) => {
-      return arr.arrUnorderedEq(a, b, (x, y) => x.coreEq(y))
+    return map.eq(this, other, (a, b) => {
+      return arr.unorderedEq(a, b, (x, y) => x.coreEq(y))
     })
   }
 
   lookAheadEq(other: Readonly<this>) {
-    return map.mapEq(this, other, (a, b) => {
-      return arr.arrUnorderedEq(a, b, (x, y) => x.lookAheadEq(y))
+    return map.eq(this, other, (a, b) => {
+      return arr.unorderedEq(a, b, (x, y) => x.lookAheadEq(y))
     })
   }
 
