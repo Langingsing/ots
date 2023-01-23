@@ -25,10 +25,11 @@ export function getOrSetDefault<K, V>(map: Map<K, V>, k: K, defaultV: V) {
 }
 
 export function extendSet<T>(set: Set<T>, items: Iterable<T>) {
+  const {size} = set
   for (const item of items) {
     set.add(item)
   }
-  return set
+  return set.size - size
 }
 
 export function indexOfMaxValue(arr: number[]) {
@@ -49,6 +50,35 @@ export function arrEq<T>(a: readonly T[], b: readonly T[], eq: eq<T> = Object.is
     return false
   }
   return a.every((item, i) => eq(item, b[i]))
+}
+
+export function arrUnorderedEq<T>(a: readonly T[], b: readonly T[], eq: eq<T> = Object.is) {
+  if (a == b) {
+    return true
+  }
+  if (a.length != b.length) {
+    return false
+  }
+  return a.every((item, i) => {
+    return eq(item, b[i])
+      || b.some(bItem => eq(item, bItem))
+  })
+}
+
+export function indicesInArr<T>(from: readonly T[], to: readonly T[], eq: eq<T> = Object.is) {
+  return from.map(item => to.findIndex(toItem => eq(item, toItem)))
+}
+
+export function setEq<K, V>(a: ReadonlySet<V>, b: ReadonlySet<V>) {
+  if (a == b) {
+    return true
+  }
+  if (a.size != b.size) {
+    return false
+  }
+  return every(a, v => {
+    return b.has(v)
+  })
 }
 
 export function mapEq<K, V>(a: ReadonlyMap<K, V>, b: ReadonlyMap<K, V>, eq: eq<V> = Object.is) {
@@ -118,6 +148,16 @@ export function some<T>(i: Iterable<T>, predicate: predicate<T>) {
     }
   }
   return false
+}
+
+export function flagSome<T>(i: Iterable<T>, predicate: predicate<T>) {
+  let flag = false
+  for (const item of i) {
+    if (predicate(item)) {
+      flag = true
+    }
+  }
+  return flag
 }
 
 export function* filter<T>(i: Iterable<T>, predicate: predicate<T>) {

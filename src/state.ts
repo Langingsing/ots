@@ -1,16 +1,29 @@
-import {getOrSetDefault, arrEq, count, mapEq, includes, every, map, filter, combine, intersect} from "./utils.js"
+import {
+  getOrSetDefault,
+  arrEq,
+  count,
+  mapEq,
+  every,
+  map,
+  filter,
+  combine,
+  intersect,
+  setEq,
+  extendSet, some, flagSome, arrUnorderedEq, indicesInArr, zip
+} from "./utils.js"
 import {Graph} from "./graph.js"
 import type {Sym, NT, Term} from "./types"
 
 export class ItemRight {
   constructor(
-    public seq: readonly Sym[],
-    public dotPos = 0
+    readonly seq: readonly Sym[],
+    readonly lookAhead = new Set<Term>(),
+    public dotPos = 0,
   ) {
   }
 
   clone() {
-    return new ItemRight(this.seq, this.dotPos)
+    return new ItemRight(this.seq, new Set(this.lookAhead), this.dotPos)
   }
 
   advanceBy(n: number) {
@@ -21,14 +34,33 @@ export class ItemRight {
     return this.seq[this.dotPos]
   }
 
+  followingDot() {
+    return this.dotPos + 1 >= this.length
+      ? ''
+      : this.seq[this.dotPos + 1]
+  }
+
   newAdvance() {
     const newItem = this.clone()
     newItem.advanceBy(1)
     return newItem
   }
 
+  coreEq(other: Readonly<this>) {
+    return this.seq === other.seq // compare seq ptr only, instead of calling arrEq
+      && this.dotPos == other.dotPos
+  }
+
+  lookAheadEq(other: Readonly<this>) {
+    return setEq(this.lookAhead, other.lookAhead)
+  }
+
   eq(other: Readonly<this>) {
-    return arrEq(this.seq, other.seq) && this.dotPos == other.dotPos
+    return this.coreEq(other) && this.lookAheadEq(other)
+  }
+
+  extendLookAhead(terms: Iterable<Term>) {
+    return extendSet(this.lookAhead, terms)
   }
 
   get length() {
@@ -46,7 +78,7 @@ export class ItemRight {
 
 export class StateData extends Map<Sym, ItemRight[]> {
   constructor(
-    public code = -1
+    public code: number
   ) {
     super()
   }
@@ -57,11 +89,15 @@ export class StateData extends Map<Sym, ItemRight[]> {
 
   extend(sym: Sym, items: Iterable<ItemRight>) {
     const arr = this.getOrSetDefault(sym)
-    for (const item of items) {
-      if (!includes(arr, item, (a, b) => a.eq(b))) {
-        arr.push(item)
+    return flagSome(items, itemRight => {
+      const sameCore = arr.find(item => item.coreEq(itemRight))
+      if (sameCore) {
+        const extended = extendSet(sameCore.lookAhead, itemRight.lookAhead)
+        return extended > 0
       }
-    }
+      arr.push(itemRight)
+      return true
+    })
   }
 
   itemRights() {
@@ -107,10 +143,31 @@ export class StateData extends Map<Sym, ItemRight[]> {
     return count(this.itemRights())
   }
 
-  eq(other: Readonly<this>) {
+  coreEq(other: Readonly<this>) {
     return mapEq(this, other, (a, b) => {
-      return arrEq(a, b, (x, y) => x.eq(y))
+      return arrUnorderedEq(a, b, (x, y) => x.coreEq(y))
     })
+  }
+
+  lookAheadEq(other: Readonly<this>) {
+    return mapEq(this, other, (a, b) => {
+      return arrUnorderedEq(a, b, (x, y) => x.lookAheadEq(y))
+    })
+  }
+
+  extendLookAhead(other: this) {
+    for (const [nt, otherItemRights] of other) {
+      const thisItemRights = this.get(nt)!
+      const indices = indicesInArr(
+        thisItemRights,
+        otherItemRights,
+        (a, b) => a.coreEq(b)
+      )
+      for (const [thisItemRight, index] of zip(thisItemRights, indices)) {
+        const otherItemRight = otherItemRights[index]
+        thisItemRight.extendLookAhead(otherItemRight.lookAhead)
+      }
+    }
   }
 
   throwIfConflict(follow: ReadonlyMap<NT, ReadonlySet<Term>>) {

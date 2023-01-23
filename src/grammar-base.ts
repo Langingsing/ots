@@ -1,4 +1,4 @@
-import {find, findLast, getOrSetDefault, map} from "./utils.js"
+import {extendSet, filter, find, findLast, flagSome, getOrSetDefault, map} from "./utils.js"
 import {ProdIndex} from "./prod-index.js"
 import {MapToSet} from "./map-to-set.js"
 import {DFA, ItemRight, StateData} from "./state.js"
@@ -10,7 +10,7 @@ import {Tree} from "./tree.js"
 
 export class GrammarBase {
   private readonly rules: Map<NT, Sym[][]>
-  start?: NT
+  start: NT
   end: Term
 
   constructor(
@@ -291,12 +291,12 @@ export class GrammarBase {
   }
 
   calcDFA() {
-    const state = this.closure(this.start!)
-    state.code = 0
+    const state = this.closureStart()
     let code = 1
     const root = new DFA(state)
     const met = new Set<DFA>();
     const stack = [root]
+    const coreGroups: number[] = []
     while (stack.length > 0) {
       const node = stack.pop()!
 
@@ -308,17 +308,30 @@ export class GrammarBase {
       const state = node.data
 
       for (const symbol of state.availableEdges()) {
-        const next = this.nextStateNew(state, symbol, code)
-        let dest = find(met, state => state.data.eq(next))
-        if (!dest) {
-          dest = new DFA(next)
+        const nextState = this.nextStateNew(state, symbol, code)
+        let nextNode = new DFA(nextState)
+        const sameCore = [...filter(met, state => state.data.coreEq(nextState))]
+        if (sameCore.length > 0) {
+          const sameNode = find(sameCore, state => state.data.lookAheadEq(nextState))
+          if (sameNode) {
+            nextNode = sameNode
+            coreGroups[code] = code
+          } else {
+            coreGroups[code] = sameCore[0].data.code
+            code++
+          }
+        } else {
+          coreGroups[code] = code
           code++
         }
-        node.link(symbol, dest)
-        stack.push(dest)
+        node.link(symbol, nextNode)
+        stack.push(nextNode)
       }
     }
-    return root
+    return {
+      dfa: root,
+      coreGroups
+    }
   }
 
   nextStateNew(state: Readonly<StateData>, symbol: Sym, code: number) {
@@ -341,38 +354,45 @@ export class GrammarBase {
     return next
   }
 
-  private newItemRightList(nt: NT) {
-    return this.rules.get(nt)!.map(seq => new ItemRight(seq))
+  private newItemRightList(nt: NT, lookAhead: Set<Term>) {
+    return this.rules.get(nt)!.map(seq => new ItemRight(seq, lookAhead))
   }
 
-  private closure(nt: NT) {
-    const state = new StateData()
-    state.set(nt, this.newItemRightList(nt))
+  private closureStart() {
+    const state = new StateData(0)
+    const itemRights = this.newItemRightList(this.start, new Set([this.end]))
+    itemRights.forEach(item => item.lookAhead.add(this.end))
+    state.set(this.start, itemRights)
     this.closureOnState(state)
     return state
   }
 
   private closureOnState(state: StateData) {
     for (; ;) {
-      const count = state.count()
-      for (const nt of state.keys()) {
-        const setRef = state.get(nt)!
-        for (const itemRight of setRef) {
+      const updated = flagSome(state.values(), itemRights => {
+        return flagSome(itemRights, itemRight => {
           if (itemRight.toReduce())
-            continue
+            return false
           const symbol = itemRight.atDot()
           if (this.isTerm(symbol))
-            continue
-          const newSet = this.newItemRightList(symbol)
-          state.extend(symbol, newSet)
-        }
-      }
-      if (state.count() == count)
+            return false
+          const followingDot = itemRight.followingDot()
+          const firstSetOfFollowingDot = this.firstSetOf(followingDot)
+          const lookAhead = new Set(firstSetOfFollowingDot)
+          if (firstSetOfFollowingDot.has('')) {
+            lookAhead.delete('')
+            extendSet(lookAhead, itemRight.lookAhead)
+          }
+          const newSet = this.newItemRightList(symbol, lookAhead)
+          return state.extend(symbol, newSet)
+        })
+      })
+      if (!updated)
         return state
     }
   }
 
-  calcSLRTable(dfa: Readonly<DFA> = this.calcDFA()) {
+  calcSLRTable({dfa, coreGroups} = this.calcDFA()) {
     const dfaNodeList = dfa.closure()
     const table = new SLRTable(
       dfaNodeList.size,
@@ -393,8 +413,8 @@ export class GrammarBase {
         }
       }
       from.throwIfConflict(this.follow)
-      for (const [nt, {seq}] of from.productionsToReduce()) {
-        for (const term of this.follow.get(nt)!) {
+      for (const [nt, {seq, lookAhead}] of from.productionsToReduce()) {
+        for (const term of lookAhead) {
           row.setAction(term, new Reduce(nt, seq, this.seqCode(nt, seq)))
         }
       }
@@ -443,8 +463,9 @@ export class GrammarBase {
     tokens: Iterable<Token>,
     semanticRules: ((...args: Map<string, V | string>[]) => Map<string, V>)[] = []
   ) {
-    const dfa = this.calcDFA()
-    const slrTable = this.calcSLRTable(dfa)
+    const calcDFAResult = this.calcDFA()
+    const slrTable = this.calcSLRTable(calcDFAResult)
+    const {dfa} = calcDFAResult
     const stateStack = [dfa.data.code]
     const values: Map<string, V | string>[] = []
     // iterate over tokens
@@ -499,8 +520,9 @@ export class GrammarBase {
   }
 
   parse(tokens: Iterable<Token>) {
-    const dfa = this.calcDFA()
-    const slrTable = this.calcSLRTable(dfa)
+    const calcDFAResult = this.calcDFA()
+    const slrTable = this.calcSLRTable(calcDFAResult)
+    const {dfa} = calcDFAResult
     const stateStack = [dfa.data.code]
     const treeStack: Tree<Sym>[] = []
     // iterate over tokens
