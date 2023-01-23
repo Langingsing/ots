@@ -36,7 +36,7 @@ console.log(grammar.nonTerms)
 console.log(grammar.epsilonProducers)
 console.log(grammar.first)
 console.log(grammar.follow)
-// console.log(grammar.calcSLRTable().toString())
+// console.log(grammar.calcLRTable().toString())
 
 const str = '3 * (4 + 56)'
 const tokens = new Lexer([
@@ -54,7 +54,7 @@ const tokens = new Lexer([
 // )
 
 // console.log(symTree.toString())
-console.log(grammar.singleSSDD(
+console.log(grammar.sSDD(
   filter(tokens, token => token.type != Rule.BLANK[0]),
   semanticRules
 ))

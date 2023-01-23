@@ -81,7 +81,7 @@ const tokens = new Lexer([
   ['null', /null/],
 ]).parse(str)
 
-console.log(jsonGrammar.singleSSDD(
+console.log(jsonGrammar.sSDD(
   filter(tokens, token => token.type != Rule.BLANK[0]),
   semanticRules
 ))

@@ -1,5 +1,5 @@
 export class DisjointSet {
-  private readonly arr: number[] = []
+  readonly arr: number[] = []
 
   get length() {
     return this.arr.length

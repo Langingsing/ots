@@ -324,7 +324,8 @@ export class GrammarBase {
     const state = this.closureStart()
     let code = 1
     const root = new DFA(state)
-    const met = new Set<DFA>();
+    const met = new Set<DFA>()
+    const nodes = new Set([root])
     const stack = [root]
     const coreGroups = new DisjointSet()
     coreGroups.addRoot()
@@ -341,13 +342,13 @@ export class GrammarBase {
       for (const symbol of state.availableEdges()) {
         const nextState = this.nextStateNew(state, symbol, code)
         let nextNode = new DFA(nextState)
-        const sameCore = [...filter(met, state => state.data.coreEq(nextState))]
+        const sameCore = [...filter(nodes, state => state.data.coreEq(nextState))]
         if (sameCore.length > 0) {
           const sameNode = find(sameCore, state => state.data.lookAheadEq(nextState))
           if (sameNode) {
             nextNode = sameNode
           } else {
-            coreGroups.setFather(code, sameCore[0].data.code)
+            coreGroups.setFather(code, coreGroups.rootOf(sameCore[0].data.code))
             code++
           }
         } else {
@@ -355,6 +356,7 @@ export class GrammarBase {
           code++
         }
         node.link(symbol, nextNode)
+        nodes.add(nextNode)
         stack.push(nextNode)
       }
     }
@@ -365,8 +367,8 @@ export class GrammarBase {
   }
 
   nextStateNew(state: Readonly<StateData>, symbol: Sym, code: number) {
-    const next = new StateData(code);
-    return this.nextState(state, symbol, next);
+    const next = new StateData(code)
+    return this.nextState(state, symbol, next)
   }
 
   private nextState(state: Readonly<StateData>, symbol: Sym, next: StateData) {
@@ -424,19 +426,28 @@ export class GrammarBase {
 
   calcLRTable({dfa, coreGroups} = this.calcDFA()) {
     const dfaNodeList = dfa.closure()
+    const disjointSetRootToRowIndex = coreGroups.arr
+      .reduce((disjointSetRootToRowIndex, node) => {
+        const root = coreGroups.fatherOf(node)
+        if (root >= disjointSetRootToRowIndex.length) {
+          disjointSetRootToRowIndex[root] = disjointSetRootToRowIndex.length
+        }
+        return disjointSetRootToRowIndex
+      }, [] as number[])
     const table = new SLRTable(
       this.terms,
       this.nonTerms,
-      this.end
+      this.end,
+      disjointSetRootToRowIndex.length
     )
     for (const fromNode of dfaNodeList) {
       const {data: from} = fromNode
-      const mergeTo = coreGroups.fatherOf(from.code)
-      const row = table.getRowOrSetDefault(mergeTo)
+      const fromRowIndex = disjointSetRootToRowIndex[coreGroups.fatherOf(from.code)]
+      const row = table.rows[fromRowIndex]
 
       for (const [edge, toNode] of fromNode) {
         const {data: {code: toCode}} = toNode
-        const to = coreGroups.fatherOf(toCode)
+        const to = disjointSetRootToRowIndex[coreGroups.fatherOf(toCode)]
         if (this.isNonTerm(edge)) {
           row.setGoto(edge, to)
         } else {
@@ -477,27 +488,18 @@ export class GrammarBase {
     return code
   }
 
-  singleSSDD<V>(
-    tokens: Iterable<Token>,
-    semanticRules: ((...args: (V | string)[]) => V)[] = []
-  ) {
-    const name = 'raw'
-    return this.sSDD(tokens, semanticRules.map(rule => (...maps: Map<string, V | string>[]) => {
-      const args = maps.map(map => map.get(name)!)
-      const ntVal = rule(...args)
-      return new Map([[name, ntVal]])
-    })).get(name) as V
-  }
-
   sSDD<V>(
     tokens: Iterable<Token>,
-    semanticRules: ((...args: Map<string, V | string>[]) => Map<string, V>)[] = []
+    semanticRules: ((...args: (V | string)[]) => V)[] | ((...args: (V | string)[]) => V)
   ) {
+    const getSemanticRule = Array.isArray(semanticRules)
+      ? (i: number) => semanticRules[i]
+      : () => semanticRules
     const calcDFAResult = this.calcDFA()
     const slrTable = this.calcLRTable(calcDFAResult)
     const {dfa} = calcDFAResult
     const stateStack = [dfa.data.code]
-    const values: Map<string, V | string>[] = []
+    const values: (V | string)[] = []
     // iterate over tokens
     for (const token of tokens) {
       for (; ;) {
@@ -513,7 +515,7 @@ export class GrammarBase {
         if (action.isShift()) {
           const {next} = action as Shift
           stateStack.push(next)
-          values.push(new Map([['raw', token.raw]]))
+          values.push(token.raw)
           break
         }
         throw 'received after accepting'
@@ -544,64 +546,21 @@ export class GrammarBase {
       const next = slrTable.rows[lastState].goto(nt)!
       stateStack.push(next)
 
-      const semanticRule = semanticRules[code] ??= () => new Map()
-      values.push(semanticRule(...children))
+      const semanticRule = getSemanticRule(code)
+      values.push(semanticRule(...children, nt))
     }
   }
 
   parse(tokens: Iterable<Token>) {
-    const calcDFAResult = this.calcDFA()
-    const slrTable = this.calcLRTable(calcDFAResult)
-    const {dfa} = calcDFAResult
-    const stateStack = [dfa.data.code]
-    const treeStack: Tree<Sym>[] = []
-    // iterate over tokens
-    for (const token of tokens) {
-      for (; ;) {
-        const lastState = stateStack.at(-1)!
-        const action = slrTable.rows[lastState].action(token.type)
-        if (!action) {
-          throw 'syntax error'
-        }
-        if (action.isReduce()) {
-          handleReduce(action)
-          continue
-        }
-        if (action.isShift()) {
-          const {next} = action as Shift
-          stateStack.push(next)
-          treeStack.push(new Tree(token.raw))
-          break
-        }
-        throw 'received after accepting'
-      }
-    }
-    // reducing and accepting
-    for (; ;) {
-      const lastState = stateStack.at(-1)!
-      const action = slrTable.rows[lastState].action(this.end)
-      if (!action) {
-        throw 'syntax error'
-      }
-      if (action.isReduce()) {
-        handleReduce(action)
-      } else {
-        // action is Accept
-        break
-      }
-    }
-    return treeStack[0]
-
-    function handleReduce(action: Reduce) {
-      const {nt, seq, code} = action
-      // pop seq.length states
-      stateStack.splice(stateStack.length - seq.length)
-      const children = treeStack.splice(treeStack.length - seq.length)
-      const lastState = stateStack.at(-1)!
-      const next = slrTable.rows[lastState].goto(nt)!
-      stateStack.push(next)
-      treeStack.push(new Tree(nt, children))
-    }
+    return this.sSDD<Tree<string>>(tokens, (...args) => {
+      const nt = args.pop() as string
+      const chilren = args.map(arg => {
+        return typeof arg == 'string'
+          ? new Tree(arg)
+          : arg
+      })
+      return new Tree(nt, chilren)
+    })
   }
 
   isEmpty() {

@@ -2,7 +2,6 @@ import {Grammar} from "./grammar.js"
 import {Lexer, Rule} from "./lexer.js"
 import {filter} from "./utils.js"
 const grammar = new Grammar([
-  ["S'", [['S']]],
   ['S', [
     ['C', 'C'],
   ]],

@@ -40,10 +40,6 @@ export class SLRTable {
     this.rows = Array.from({length: rowCountHint}, () => new Row())
   }
 
-  getRowOrSetDefault(rowIndex: number) {
-    return this.rows[rowIndex] ??= new Row()
-  }
-
   static from(tsvContent: string, productions: [NT, Sym[]][]) {
     const arr = tsvContent
       .split('\n')
