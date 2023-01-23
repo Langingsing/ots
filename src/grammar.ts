@@ -5,6 +5,7 @@ export class Grammar extends GrammarBase {
   private _alphabet?: Set<Sym>
   private _nonTerms?: Set<NT>
   private _terms?: Set<Term>
+  private _reachable?: Set<Sym>
   private _epsilonProducers?: Set<NT>
   private _first?: Map<NT, Set<Term>>
   private _follow?: Map<NT, Set<Term>>
@@ -19,6 +20,10 @@ export class Grammar extends GrammarBase {
 
   get terms() {
     return this._terms ??= super.terms
+  }
+
+  get reachable() {
+    return this._reachable ??= super.reachable
   }
 
   get epsilonProducers() {

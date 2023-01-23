@@ -77,6 +77,34 @@ export class GrammarBase {
     return this.terms.has(sym)
   }
 
+  get reachable() {
+    return this.calcReachable()
+  }
+
+  protected calcReachable() {
+    const reachable = new Set<Sym>()
+    if (this.isEmpty()) {
+      return reachable
+    }
+    const stack: NT[] = [this.start]
+    while (stack.length > 0) {
+      const nt = stack.pop()!
+      const rhs = this.rules.get(nt)!
+      for (const seq of rhs) {
+        for (const sym of seq) {
+          if (reachable.has(sym)) {
+            continue
+          }
+          reachable.add(sym)
+          if (this.isNonTerm(sym)) {
+            stack.push(sym)
+          }
+        }
+      }
+    }
+    return reachable
+  }
+
   get follow() {
     return this.calcFollow()
   }
