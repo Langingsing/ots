@@ -77,11 +77,11 @@ export class GrammarBase {
     return this.terms.has(sym)
   }
 
-  get reachable() {
-    return this.calcReachable()
+  get reachableNTs() {
+    return this.calcReachableNTs()
   }
 
-  protected calcReachable() {
+  protected calcReachableNTs() {
     const reachable = new Set<Sym>()
     if (this.isEmpty()) {
       return reachable
@@ -95,8 +95,8 @@ export class GrammarBase {
           if (reachable.has(sym)) {
             continue
           }
-          reachable.add(sym)
           if (this.isNonTerm(sym)) {
+            reachable.add(sym)
             stack.push(sym)
           }
         }
@@ -115,7 +115,7 @@ export class GrammarBase {
       return follow
     }
 
-    follow.set(this.start!, new Set([this.end]))
+    follow.set(this.start, new Set([this.end]))
 
     const dep = new MapToSet<NT, NT>()
 
@@ -192,7 +192,8 @@ export class GrammarBase {
 
     /* depth-first searching with a dependency graph tracked */
 
-    const indexStack = [new ProdIndex(this.start!)]
+    const indexStack = [...this.reachableNTs]
+      .map(nt => new ProdIndex(nt))
     const dep = new Map<NT, ProdIndex[]>()
 
     while (indexStack.length > 0) {
@@ -270,7 +271,7 @@ export class GrammarBase {
 
     /* depth-first searching with a dependency graph tracked */
 
-    const indexStack = [new ProdIndex(this.start!)]
+    const indexStack = [new ProdIndex(this.start)]
     const dep = new Map<NT, ProdIndex[]>()
 
     while (indexStack.length > 0) {
@@ -449,7 +450,7 @@ export class GrammarBase {
       }
     }
     // set Accept
-    const acceptingState = table.rows[0].goto(this.start!)
+    const acceptingState = table.rows[0].goto(this.start)
     let acceptingRow
     if (acceptingState) {
       acceptingRow = table.rows[acceptingState]
@@ -457,7 +458,7 @@ export class GrammarBase {
       acceptingRow = new Row()
       const code = table.rows.length
       table.rows.push(acceptingRow)
-      table.rows[0].setGoto(this.start!, code)
+      table.rows[0].setGoto(this.start, code)
     }
     acceptingRow.setAction(this.end, new Accept())
 

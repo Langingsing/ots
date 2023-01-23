@@ -22,8 +22,8 @@ export class Grammar extends GrammarBase {
     return this._terms ??= super.terms
   }
 
-  get reachable() {
-    return this._reachable ??= super.reachable
+  get reachableNTs() {
+    return this._reachable ??= super.reachableNTs
   }
 
   get epsilonProducers() {
