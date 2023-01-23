@@ -7,6 +7,7 @@ import {Row, SLRTable} from "./slr-table.js"
 import {Accept, Reduce, Shift} from "./action.js"
 import {Token} from "./lexer.js"
 import {Tree} from "./tree.js"
+import {DisjointSet} from "./disjoint-set.js"
 
 export class GrammarBase {
   private readonly rules: Map<NT, Sym[][]>
@@ -296,7 +297,8 @@ export class GrammarBase {
     const root = new DFA(state)
     const met = new Set<DFA>();
     const stack = [root]
-    const coreGroups: number[] = []
+    const coreGroups = new DisjointSet()
+    coreGroups.addRoot()
     while (stack.length > 0) {
       const node = stack.pop()!
 
@@ -315,13 +317,12 @@ export class GrammarBase {
           const sameNode = find(sameCore, state => state.data.lookAheadEq(nextState))
           if (sameNode) {
             nextNode = sameNode
-            coreGroups[code] = code
           } else {
-            coreGroups[code] = sameCore[0].data.code
+            coreGroups.setFather(code, sameCore[0].data.code)
             code++
           }
         } else {
-          coreGroups[code] = code
+          coreGroups.addRoot()
           code++
         }
         node.link(symbol, nextNode)
