@@ -1,4 +1,4 @@
-import type {NT, Term, Sym} from "./types"
+import type {NT, Sym, Term} from "./types"
 import type {Action, State} from "./action"
 import {FmtTable} from "./table.js"
 import {indexOfMaxValue} from "./utils.js"
@@ -32,12 +32,16 @@ export class SLRTable {
   public readonly rows: Row[]
 
   constructor(
-    stateCount: number,
     readonly terms: ReadonlySet<Term>,
     readonly nts: ReadonlySet<NT>,
     readonly end: Term,
+    rowCountHint = 0,
   ) {
-    this.rows = Array.from({length: stateCount}, () => new Row())
+    this.rows = Array.from({length: rowCountHint}, () => new Row())
+  }
+
+  getRowOrSetDefault(rowIndex: number) {
+    return this.rows[rowIndex] ??= new Row()
   }
 
   static from(tsvContent: string, productions: [NT, Sym[]][]) {
@@ -61,10 +65,10 @@ export class SLRTable {
       return sym.length
     }))
     const table = new SLRTable(
-      arr.length,
       new Set(headers.slice(0, endIndex)),
       new Set(headers.slice(endIndex + 1)),
-      headers[endIndex]
+      headers[endIndex],
+      arr.length
     )
     for (let i = 0; i < arr.length; i++) {
       const line = arr[i]

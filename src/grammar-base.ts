@@ -393,27 +393,27 @@ export class GrammarBase {
     }
   }
 
-  calcSLRTable({dfa, coreGroups} = this.calcDFA()) {
+  calcLRTable({dfa, coreGroups} = this.calcDFA()) {
     const dfaNodeList = dfa.closure()
     const table = new SLRTable(
-      dfaNodeList.size,
       this.terms,
       this.nonTerms,
       this.end
     )
     for (const fromNode of dfaNodeList) {
       const {data: from} = fromNode
-      const row = table.rows[from.code]
+      const mergeTo = coreGroups.fatherOf(from.code)
+      const row = table.getRowOrSetDefault(mergeTo)
 
       for (const [edge, toNode] of fromNode) {
-        const {data: {code: to}} = toNode
+        const {data: {code: toCode}} = toNode
+        const to = coreGroups.fatherOf(toCode)
         if (this.isNonTerm(edge)) {
           row.setGoto(edge, to)
         } else {
           row.setAction(edge, new Shift(to))
         }
       }
-      from.throwIfConflict(this.follow)
       for (const [nt, {seq, lookAhead}] of from.productionsToReduce()) {
         for (const term of lookAhead) {
           row.setAction(term, new Reduce(nt, seq, this.seqCode(nt, seq)))
@@ -422,7 +422,7 @@ export class GrammarBase {
     }
     // set Accept
     const acceptingState = table.rows[0].goto(this.start!)
-    let acceptingRow: Row
+    let acceptingRow
     if (acceptingState) {
       acceptingRow = table.rows[acceptingState]
     } else {
@@ -465,7 +465,7 @@ export class GrammarBase {
     semanticRules: ((...args: Map<string, V | string>[]) => Map<string, V>)[] = []
   ) {
     const calcDFAResult = this.calcDFA()
-    const slrTable = this.calcSLRTable(calcDFAResult)
+    const slrTable = this.calcLRTable(calcDFAResult)
     const {dfa} = calcDFAResult
     const stateStack = [dfa.data.code]
     const values: Map<string, V | string>[] = []
@@ -522,7 +522,7 @@ export class GrammarBase {
 
   parse(tokens: Iterable<Token>) {
     const calcDFAResult = this.calcDFA()
-    const slrTable = this.calcSLRTable(calcDFAResult)
+    const slrTable = this.calcLRTable(calcDFAResult)
     const {dfa} = calcDFAResult
     const stateStack = [dfa.data.code]
     const treeStack: Tree<Sym>[] = []

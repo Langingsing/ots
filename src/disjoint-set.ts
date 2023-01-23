@@ -5,7 +5,7 @@ export class DisjointSet {
     return this.arr.length
   }
 
-  father(index: number) {
+  fatherOf(index: number) {
     return this.arr[index]
   }
 
@@ -13,11 +13,15 @@ export class DisjointSet {
     this.arr[index] = fatherIndex
   }
 
-  find(index: number) {
-    while (this.father(index) < index) {
-      index = this.father(index)
+  isInternal(i: number) {
+    return this.fatherOf(i) < i
+  }
+
+  rootOf(i: number) {
+    while (this.isInternal(i)) {
+      i = this.fatherOf(i)
     }
-    return index
+    return i
   }
 
   addRoot() {
