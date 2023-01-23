@@ -1,6 +1,4 @@
-import {Grammar} from "./grammar.js"
-import {Lexer, Rule} from "./lexer.js"
-import {filter} from "./utils.js"
+import {Grammar} from "../src/grammar.js"
 const grammar = new Grammar([
   ['S', [
     ['C', 'C'],

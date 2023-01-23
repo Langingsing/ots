@@ -1,6 +1,5 @@
-import {Grammar} from "./grammar.js"
-import {Lexer, Rule} from "./lexer.js"
-import {filter} from "./utils.js"
+import {Grammar} from "../src/grammar.js"
+import {Lexer, Rule} from "../src/lexer.js"
 
 const grammar = new Grammar([
   ['Expr', [
@@ -39,7 +38,7 @@ console.log(grammar.follow)
 // console.log(grammar.calcLRTable().toString())
 
 const str = '3 * (4 + 56)'
-const tokens = new Lexer([
+const lexer = new Lexer([
   Rule.BLANK,
   Rule.NUM,
   ['(', /\(/],
@@ -48,13 +47,9 @@ const tokens = new Lexer([
   ['-', /-/],
   ['*', /\*/],
   ['/', /\//],
-]).parse(str)
-// const symTree = grammar.parse(
-//   filter(tokens, token => token.type != Rule.BLANK[0])
-// )
+]);
+const tokens = lexer.parse(str)
+const symTree = grammar.parse(tokens)
 
-// console.log(symTree.toString())
-console.log(grammar.sSDD(
-  filter(tokens, token => token.type != Rule.BLANK[0]),
-  semanticRules
-))
+console.log(symTree.toString())
+console.log(grammar.sSDD(lexer.parse(str), semanticRules))

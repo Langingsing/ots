@@ -1,6 +1,5 @@
-import {Grammar} from "./grammar.js"
-import {Lexer, Rule} from "./lexer.js"
-import {filter} from "./utils.js"
+import {Grammar} from "../src/grammar.js"
+import {Lexer, Rule} from "../src/lexer.js"
 
 const jsonGrammar = new Grammar([
   ['Value', [
@@ -81,7 +80,4 @@ const tokens = new Lexer([
   ['null', /null/],
 ]).parse(str)
 
-console.log(jsonGrammar.sSDD(
-  filter(tokens, token => token.type != Rule.BLANK[0]),
-  semanticRules
-))
+console.log(jsonGrammar.sSDD(tokens, semanticRules))

@@ -535,7 +535,7 @@ export class GrammarBase {
         break
       }
     }
-    return values[0]
+    return values[0] as V
 
     function handleReduce(action: Reduce) {
       const {nt, seq, code} = action

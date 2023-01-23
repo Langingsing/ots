@@ -29,11 +29,14 @@ export type RulePair = Readonly<[Term, RegExp]>
 export class Lexer {
   protected readonly rules: Rule[]
 
-  constructor(rules: readonly RulePair[]) {
+  constructor(
+    rules: readonly RulePair[],
+    public skipBlanks = true,
+  ) {
     this.rules = rules.map(rule => new Rule(...rule))
   }
 
-  * parse(src: string) {
+  * parse(src: string, skipBlanks = this.skipBlanks) {
     for (let i = 0; i < src.length;) {
       let someMatched = false
       for (const {type, regex} of this.rules) {
@@ -42,7 +45,9 @@ export class Lexer {
           continue
         }
         const [matched] = m
-        yield new Token(type, matched)
+        if (type != Rule.BLANK[0] || !skipBlanks) {
+          yield new Token(type, matched)
+        }
         i += matched.length
         someMatched = true
         break
