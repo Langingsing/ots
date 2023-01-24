@@ -1,5 +1,10 @@
 import {Grammar} from "../src/grammar.js"
 import {Lexer, Rule} from "../src/lexer.js"
+import {Gram} from "../src/gram.js"
+import * as fs from "fs";
+
+Gram.parse(fs.readFileSync('boost.gram', 'utf8'))
+process.exit()
 
 const lexer = new Lexer([
   Rule.BLANK,

@@ -20,7 +20,7 @@ export class Rule {
   ) {
     const regexStr = String(pat)
     const regexBody = regexStr.substring(1, regexStr.length - 1)
-    this.regex = RegExp(`^${regexBody}`)
+    this.regex = RegExp(`^(?:${regexBody})`)
   }
 }
 
