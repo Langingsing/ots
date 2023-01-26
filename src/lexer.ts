@@ -19,8 +19,9 @@ export class Rule {
     pat: RegExp,
   ) {
     const regexStr = String(pat)
-    const regexBody = regexStr.substring(1, regexStr.length - 1)
-    this.regex = RegExp(`^(?:${regexBody})`)
+    const rightSlashPos = regexStr.lastIndexOf('/')
+    const regexBody = regexStr.substring(1, rightSlashPos)
+    this.regex = RegExp(`^(?:${regexBody})`, regexStr.substring(rightSlashPos + 1))
   }
 }
 
