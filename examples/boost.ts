@@ -1,6 +1,6 @@
 import {Grammar} from "../src/grammar.js"
 import {Lexer, Rule} from "../src/lexer.js"
-import * as fs from "fs";
+import * as fs from "fs"
 
 const lexer = new Lexer([
   Rule.BLANK,
@@ -15,11 +15,11 @@ const grammar = new Grammar([
   ]],
   ['rest', [
     ['part'],
-    ['part', '->', 'rest']
+    ['rest', '->', 'part']
   ]],
   ['part', [
     ['seq'],
-    ['seq', '|', 'part'],
+    ['part', '|', 'seq'],
   ]],
   ['seq', [
     [],
@@ -32,15 +32,14 @@ const semanticRules: ((...args: any[]) => any)[] = [
     return rest
   },
   (lastRHS) => [[lastRHS]],
-  (part, _, rest) => {
-    const nt = part.at(-1).pop()
-    rest[0].unshift(nt)
-    rest.unshift([part])
+  (rest, _, part) => {
+    const nt = rest.at(-1).at(-1).at(-1).pop()
+    rest.push([nt, part])
     return rest
   },
   (seq) => [seq],
-  (seq, _, part) => {
-    part.unshift(seq)
+  (part, _, seq) => {
+    part.push(seq)
     return part
   },
   () => [],
