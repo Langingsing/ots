@@ -1,7 +1,7 @@
-gram -> prod
-      | prod gram
-prod -> sym "->" rhs
-rhs -> seq
-     | seq "|" rhs
+gram -> sym "->" rest
+rest -> part
+      | rest "->" part
+part -> seq
+      | part "|" seq
 seq -> 
-     | sym seq
+     | seq sym
