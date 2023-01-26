@@ -1,67 +1,58 @@
 import {Grammar} from "../src/grammar.js"
 import {Lexer, Rule} from "../src/lexer.js"
-import {Gram} from "../src/gram.js"
 import * as fs from "fs";
-
-Gram.parse(fs.readFileSync('boost.gram', 'utf8'))
-process.exit()
 
 const lexer = new Lexer([
   Rule.BLANK,
-  ['sym', /\w+/],
+  ['sym', /(['"]).*?\1|\w+/],
   ['|', /\|/],
   ['->', /->/],
 ])
 
 const grammar = new Grammar([
   ['gram', [
-    ['prod'],
-    ['prod', 'gram'],
+    ['sym', '->', 'rest'],
   ]],
-  ['prod', [
-    ['sym', '->', 'rhs']
+  ['rest', [
+    ['part'],
+    ['part', '->', 'rest']
   ]],
-  ['rhs', [
+  ['part', [
     ['seq'],
-    ['seq', '|', 'rhs'],
+    ['seq', '|', 'part'],
   ]],
   ['seq', [
     [],
-    ['sym', 'seq'],
+    ['seq', 'sym'],
   ]],
 ])
 const semanticRules: ((...args: any[]) => any)[] = [
-  (prod) => new Grammar([prod]),
-  (prod, gram) => {
-    gram.push(prod)
-    return gram
+  (firstNT, _, rest) => {
+    rest[0].unshift(firstNT)
+    return rest
   },
-  (sym, _, rhs) => [sym, rhs],
+  (lastRHS) => [[lastRHS]],
+  (part, _, rest) => {
+    const nt = part.at(-1).pop()
+    rest[0].unshift(nt)
+    rest.unshift([part])
+    return rest
+  },
   (seq) => [seq],
-  (seq, _, rhs) => {
-    rhs.push(seq)
-    return rhs
+  (seq, _, part) => {
+    part.unshift(seq)
+    return part
   },
   () => [],
-  (sym, seq) => {
+  (seq, sym) => {
     seq.push(sym)
     return seq
   },
 ]
-// console.log(grammar.rules)
-console.log('terms')
-console.log(grammar.terms)
-console.log('nts')
-console.log(grammar.nonTerms)
-console.log(grammar.epsilonProducers)
-console.log(grammar.first)
-console.log(grammar.follow)
-console.log(grammar.calcLRTable().toString())
 
-const str = 'A -> a | b'
-
-const tokens = lexer.parse(str)
+const tokens = lexer.parse(fs.readFileSync('boost.gram', 'utf8'))
 // const symTree = grammar.parse(tokens)
 
 // console.log(symTree.toString())
-console.log(grammar.sSDD(tokens, semanticRules).toString())
+const ruleEntries = grammar.sSDD(tokens, semanticRules)
+console.log(new Grammar(ruleEntries).toString())
