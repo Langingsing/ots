@@ -35,7 +35,7 @@ const jsonGrammar = new Grammar([
 const identical = <T>(x: T) => x
 const semanticRules: ((...args: any[]) => any)[] = [
   /* Value */
-  (string) => string.substring(1, string.length - 1),
+  identical,
   (number) => Number(number),
   identical,
   identical,
@@ -52,7 +52,7 @@ const semanticRules: ((...args: any[]) => any)[] = [
     return objectContent
   },
   /* Entry */
-  (string, _, value) => [string.substring(1, string.length - 1), value],
+  (string, _, value) => [string, value],
   /* Array */
   () => [],
   (_, arrayContent) => arrayContent,
@@ -67,7 +67,7 @@ const semanticRules: ((...args: any[]) => any)[] = [
 const str = '{"a": 3.1, "b": [true, "code"]}'
 const tokens = new Lexer([
   Rule.BLANK,
-  ['string', /".*?"/],
+  Rule.DOUBLE_QUOTED_STRING.renameNew('string'),
   [',', /,/],
   ['{', /\{/],
   ['}', /}/],

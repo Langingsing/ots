@@ -1,53 +1,107 @@
 import type {Term} from "./types"
 
-export class Token {
+export class Token<Raw = string> {
   constructor(
     readonly type: Term,
-    readonly raw: string,
+    readonly raw: Raw,
   ) {
   }
 }
 
-export class Rule {
-  static readonly NUM: RulePair = ['num', /\d+/]
-  static readonly BLANK: RulePair = ['blank', /\s+/]
+export type ReadonlyRule<Raw = string> = Omit<Rule<Raw>, 'rename'>
+
+export class Rule<Raw = string> {
+  static readonly NUM: ReadonlyRule = new Rule('num', /\d+/)
+  static readonly BLANK: ReadonlyRule = new Rule('blank', /\s+/, undefined, true)
+  static readonly DOUBLE_QUOTED_STRING: ReadonlyRule = new Rule(
+    'doubleQuotedString',
+    /".*?"/,
+    Rule.dropOneBothEnd
+  )
+  static readonly SINGLE_QUOTED_STRING: ReadonlyRule = new Rule(
+    'singleQuotedString',
+    /'.*?'/,
+    Rule.dropOneBothEnd
+  )
+  static readonly STRING: ReadonlyRule = new Rule(
+    'string',
+    /(?<quote>['"]).*?\k<quote>/,
+    Rule.dropOneBothEnd
+  )
+
+  private static dropOneBothEnd(matched: string) {
+    return matched.substring(1, matched.length - 1)
+  }
 
   readonly regex: RegExp
+  type: Term
 
   constructor(
-    readonly type: Term,
+    type: Term,
     pat: RegExp,
+    mapFn?: ((matched: string) => Raw),
+    skip?: boolean,
+  )
+  constructor(
+    rule: Rule<Raw>
+  )
+  constructor(
+    typeOrRule: Term | Rule<Raw>,
+    pat?: RegExp,
+    readonly mapFn: ((matched: string) => Raw) = x => x as any,
+    readonly skip = false,
   ) {
-    const regexStr = String(pat)
-    const rightSlashPos = regexStr.lastIndexOf('/')
-    const regexBody = regexStr.substring(1, rightSlashPos)
-    this.regex = RegExp(`^(?:${regexBody})`, regexStr.substring(rightSlashPos + 1))
+    if (typeOrRule instanceof Rule) {
+      const {mapFn, regex, skip, type} = typeOrRule
+      this.regex = regex
+      this.type = type
+      this.mapFn = mapFn
+      this.skip = skip
+    } else {
+      this.type = typeOrRule
+      const regexStr = String(pat)
+      const rightSlashPos = regexStr.lastIndexOf('/')
+      const regexBody = regexStr.substring(1, rightSlashPos)
+      this.regex = RegExp(`^(?:${regexBody})`, regexStr.substring(rightSlashPos + 1))
+    }
+  }
+
+  clone() {
+    return new Rule<Raw>(this)
+  }
+
+  rename(newType: Term) {
+    this.type = newType
+    return this
+  }
+
+  renameNew(newType: Term) {
+    return this.clone().rename(newType)
   }
 }
 
 export type RulePair = Readonly<[Term, RegExp]>
 
-export class Lexer {
-  protected readonly rules: Rule[]
+export class Lexer<Raw = string> {
+  protected readonly rules: ReadonlyRule<Raw>[]
 
   constructor(
-    rules: readonly RulePair[],
-    public skipBlanks = true,
+    rules: readonly (RulePair | ReadonlyRule<Raw>)[],
   ) {
-    this.rules = rules.map(rule => new Rule(...rule))
+    this.rules = rules.map(rule => Array.isArray(rule) ? new Rule(rule[0], rule[1]) : rule as ReadonlyRule<Raw>)
   }
 
-  * parse(src: string, skipBlanks = this.skipBlanks) {
+  * parse(src: string) {
     for (let i = 0; i < src.length;) {
       let someMatched = false
-      for (const {type, regex} of this.rules) {
+      for (const {type, regex, skip, mapFn} of this.rules) {
         const m = src.substring(i).match(regex)
         if (!m) {
           continue
         }
         const [matched] = m
-        if (type != Rule.BLANK[0] || !skipBlanks) {
-          yield new Token(type, matched)
+        if (!skip) {
+          yield new Token(type, mapFn(matched))
         }
         i += matched.length
         someMatched = true
@@ -57,6 +111,5 @@ export class Lexer {
         throw `unrecognized '${src[i]}' at index ${i}`
       }
     }
-    return [] as Token[]
   }
 }

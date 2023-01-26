@@ -4,7 +4,12 @@ import * as fs from "fs"
 
 const lexer = new Lexer([
   Rule.BLANK,
-  ['sym', /(['"]).*?\1|\w+/],
+  new Rule('sym', /(['"]).*?\1|\w+/, matched => {
+    if (matched[0] === '"') {
+      return matched.substring(1, matched.length - 1)
+    }
+    return matched
+  }),
   ['|', /\|/],
   ['->', /->/],
 ])
@@ -28,9 +33,6 @@ const grammar = new Grammar([
 ])
 const semanticRules: ((...args: any[]) => any)[] = [
   (firstNT, _, rest) => {
-    if (firstNT[0] === '"') {
-      firstNT = firstNT.substring(1, firstNT.length - 1)
-    }
     rest[0].unshift(firstNT)
     return rest
   },
@@ -47,9 +49,6 @@ const semanticRules: ((...args: any[]) => any)[] = [
   },
   () => [],
   (seq, sym) => {
-    if (sym[0] === '"') {
-      sym = sym.substring(1, sym.length - 1)
-    }
     seq.push(sym)
     return seq
   },
