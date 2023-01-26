@@ -567,10 +567,18 @@ export class GrammarBase {
     return this.rules.size == 0
   }
 
+  private static wrapIfNeed(str: string) {
+    const pat = /[\s|]|->/
+    if (str.match(pat)) {
+      return `"${str}"`
+    }
+    return str
+  }
+
   toString() {
     return this.ruleEntries.map(([nt, rhs]) => {
       return `${nt} -> ${
-        rhs.map(seq => seq.join(' '))
+        rhs.map(seq => seq.map(GrammarBase.wrapIfNeed).join(' '))
           .join(`\n${' '.repeat(nt.length + 2)}| `)
       }`
     }).join('\n')

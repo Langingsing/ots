@@ -28,6 +28,9 @@ const grammar = new Grammar([
 ])
 const semanticRules: ((...args: any[]) => any)[] = [
   (firstNT, _, rest) => {
+    if (firstNT[0] === '"') {
+      firstNT = firstNT.substring(1, firstNT.length - 1)
+    }
     rest[0].unshift(firstNT)
     return rest
   },
@@ -44,6 +47,9 @@ const semanticRules: ((...args: any[]) => any)[] = [
   },
   () => [],
   (seq, sym) => {
+    if (sym[0] === '"') {
+      sym = sym.substring(1, sym.length - 1)
+    }
     seq.push(sym)
     return seq
   },
