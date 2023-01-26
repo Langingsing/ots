@@ -478,7 +478,7 @@ export class GrammarBase {
 
   private seqCode(nt: NT, seq: readonly Sym[]) {
     let code = 0
-    for (let [lhs, rhs] of this.ruleEntries) {
+    for (const [lhs, rhs] of this.ruleEntries) {
       if (lhs == nt) {
         code += rhs.indexOf(seq as Sym[])
         break
