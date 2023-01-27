@@ -74,7 +74,7 @@ const tokens = new Lexer([
   ':',
   '[',
   ']',
-  ['number', /-?(?:0|[1-9]\d*)(?:\.\d+)?(?:[Ee][+-]?\d+)?/],
+  Rule.NUMBER,
   'true',
   'false',
   'null',

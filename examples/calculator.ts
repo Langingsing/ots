@@ -40,7 +40,7 @@ console.log(grammar.follow)
 const str = '3 * (4 + 56)'
 const lexer = new Lexer([
   Rule.BLANK,
-  Rule.NUM,
+  Rule.DIGITS.renameNew('num'),
   '(',
   ')',
   '+',
