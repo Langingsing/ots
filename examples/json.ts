@@ -32,6 +32,7 @@ const fnGrammar = new Grammar([
     ['id', '=', 'string'],
   ]],
 ])
+const fnTable = fnGrammar.calcLRTable()
 const fnSSDD: ((...args: any) => any)[] = [
   /* fn */
   (paramDecl) => paramDecl,
@@ -58,7 +59,7 @@ const jsonGrammar = new Grammar(
       return [nt, fns.map(fn => {
         const fnString = fn.toString()
         const tokens = fnLexer.parse(fnString)
-        return fnGrammar.sSDD<string[]>(
+        return fnTable.sSDD<string[]>(
           iter.takeUntil(tokens, token => token.type == ')'),
           fnSSDD
         )
@@ -71,4 +72,4 @@ const str = '{"a": 3.1, "b": [true, "code"]}'
 const tokens = new Lexer(lex).parse(str)
 
 const ssdd: any[] = Object.values(sSDD).flat()
-console.log(jsonGrammar.sSDD(tokens, ssdd))
+console.log(jsonGrammar.calcLRTable().sSDD(tokens, ssdd))

@@ -49,7 +49,7 @@ const lexer = new Lexer([
   '/',
 ])
 const tokens = lexer.parse(str)
-const symTree = grammar.parse(tokens)
+const symTree = grammar.calcLRTable().parse(tokens)
 
 console.log(symTree.toString())
-console.log(grammar.sSDD(lexer.parse(str), semanticRules))
+console.log(grammar.calcLRTable().sSDD(lexer.parse(str), semanticRules))

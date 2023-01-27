@@ -3,10 +3,8 @@ import {ProdIndex} from "./prod-index.js"
 import {MapToSet} from "./map-to-set.js"
 import {DFA, ItemRight, StateData} from "./state.js"
 import type {NT, Sym, Term} from "./types"
-import {Row, SLRTable} from "./slr-table.js"
+import {Row, LRTable} from "./lr-table.js"
 import {Accept, Reduce, Shift} from "./action.js"
-import {Token} from "./lexer.js"
-import {Tree} from "./tree.js"
 import {DisjointSet} from "./disjoint-set.js"
 
 export class GrammarBase {
@@ -433,7 +431,7 @@ export class GrammarBase {
         }
         return disjointSetRootToRowIndex
       }, [] as number[])
-    const table = new SLRTable(
+    const table = new LRTable(
       this.terms,
       this.nonTerms,
       this.end,
@@ -485,81 +483,6 @@ export class GrammarBase {
       code += rhs.length
     }
     return code
-  }
-
-  sSDD<V>(
-    tokens: Iterable<Token>,
-    semanticRules: ((...args: (V | string)[]) => V)[] | ((...args: (V | string)[]) => V)
-  ) {
-    const getSemanticRule = Array.isArray(semanticRules)
-      ? (i: number) => semanticRules[i]
-      : () => semanticRules
-    const calcDFAResult = this.calcDFA()
-    const slrTable = this.calcLRTable(calcDFAResult)
-    const {dfa} = calcDFAResult
-    const stateStack = [dfa.data.code]
-    const values: (V | string)[] = []
-    // iterate over tokens
-    for (const token of tokens) {
-      for (; ;) {
-        const lastState = stateStack.at(-1)!
-        const action = slrTable.rows[lastState].action(token.type)
-        if (!action) {
-          throw 'syntax error'
-        }
-        if (action.isReduce()) {
-          handleReduce(action)
-          continue
-        }
-        if (action.isShift()) {
-          const {next} = action as Shift
-          stateStack.push(next)
-          values.push(token.raw)
-          break
-        }
-        throw 'received after accepting'
-      }
-    }
-    // reducing and accepting
-    for (; ;) {
-      const lastState = stateStack.at(-1)!
-      const action = slrTable.rows[lastState].action(this.end)
-      if (!action) {
-        throw 'syntax error'
-      }
-      if (action.isReduce()) {
-        handleReduce(action)
-      } else {
-        // action is Accept
-        break
-      }
-    }
-    return values[0] as V
-
-    function handleReduce(action: Reduce) {
-      const {nt, seq, code} = action
-      // pop seq.length states
-      stateStack.splice(stateStack.length - seq.length)
-      const children = values.splice(values.length - seq.length)
-      const lastState = stateStack.at(-1)!
-      const next = slrTable.rows[lastState].goto(nt)!
-      stateStack.push(next)
-
-      const semanticRule = getSemanticRule(code)
-      values.push(semanticRule(...children, nt))
-    }
-  }
-
-  parse(tokens: Iterable<Token>) {
-    return this.sSDD<Tree<string>>(tokens, (...args) => {
-      const nt = args.pop() as string
-      const chilren = args.map(arg => {
-        return typeof arg == 'string'
-          ? new Tree(arg)
-          : arg
-      })
-      return new Tree(nt, chilren)
-    })
   }
 
   isEmpty() {

@@ -32,6 +32,7 @@ const fnGrammar = new Grammar([
     ['id', '=', 'string'],
   ]],
 ])
+const fnTable = fnGrammar.calcLRTable()
 const fnSSDD: ((...args: any) => any)[] = [
   /* fn */
   (paramDecl) => paramDecl,
@@ -60,7 +61,7 @@ export function transform(def: any) {
         return [nt, fns.map(fn => {
           const fnString = fn.toString()
           const tokens = fnLexer.parse(fnString)
-          return fnGrammar.sSDD<string[]>(
+          return fnTable.sSDD<string[]>(
             iter.takeUntil(tokens, token => token.type == ')'),
             fnSSDD
           )

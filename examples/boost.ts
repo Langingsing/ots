@@ -58,5 +58,5 @@ const tokens = lexer.parse(fs.readFileSync('boost.gram', 'utf8'))
 // const symTree = grammar.parse(tokens)
 
 // console.log(symTree.toString())
-const ruleEntries = grammar.sSDD(tokens, semanticRules)
+const ruleEntries = grammar.calcLRTable().sSDD(tokens, semanticRules)
 console.log(new Grammar(ruleEntries).toString())
