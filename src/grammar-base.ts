@@ -11,14 +11,13 @@ import {DisjointSet} from "./disjoint-set.js"
 
 export class GrammarBase {
   private readonly rules: Map<NT, Sym[][]>
-  start: NT
   end: Term
 
   constructor(
-    private readonly ruleEntries: readonly [NT, Sym[][]][]
+    private readonly ruleEntries: readonly [NT, Sym[][]][],
+    public start = ruleEntries[0][0]
   ) {
     this.rules = new Map(ruleEntries)
-    this.start = ruleEntries[0]?.[0]
     const {alphabet} = this
     let end = '$'
     while (alphabet.has(end)) {

@@ -223,4 +223,13 @@ export namespace iter {
       yield [x, y] as [T, U]
     }
   }
+
+  export function* takeWhile<T>(i: Iterable<T>, predicate: predicate<T>) {
+    for (const x of i) {
+      yield x
+      if (predicate(x)) {
+        break
+      }
+    }
+  }
 }

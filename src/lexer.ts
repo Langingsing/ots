@@ -11,6 +11,7 @@ export class Token<Raw = string> {
 export type ReadonlyRule<Raw = string> = Omit<Rule<Raw>, 'rename'>
 
 export class Rule<Raw = string> {
+  static readonly ID: ReadonlyRule = new Rule('id', /[\w$]+/)
   static readonly DIGITS: ReadonlyRule = new Rule('digits', /\d+/)
   static readonly NUMBER: ReadonlyRule = new Rule('number', /-?(?:0|[1-9]\d*)(?:\.\d+)?(?:[Ee][+-]?\d+)?/)
   static readonly BLANK: ReadonlyRule = new Rule('blank', /\s+/, undefined, true)

@@ -1,83 +1,74 @@
 import {Grammar} from "../src/grammar.js"
 import {Lexer, Rule} from "../src/lexer.js"
+// @ts-ignore
+import def from './json.def.js'
+import {iter} from "../src/utils.js";
+import takeUntil = iter.takeWhile;
 
-const jsonGrammar = new Grammar([
-  ['Value', [
-    ['string'],
-    ['number'],
-    ['Object'],
-    ['Array'],
-    ['true'],
-    ['false'],
-    ['null'],
+const fnLexer = new Lexer([
+  Rule.BLANK,
+  Rule.ID,
+  Rule.STRING,
+  ',',
+  '=',
+  '(',
+  ')',
+  'function',
+])
+const fnGrammar = new Grammar([
+  ['fn', [
+    ['paramDecl'],
+    ['function', 'paramDecl']
   ]],
-  ['Object', [
-    ['{', '}'],
-    ['{', 'ObjectContent', '}'],
+  ['paramDecl', [
+    ['(', 'paramList', ')']
   ]],
-  ['ObjectContent', [
-    ['Entry'],
-    ['Entry', ',', 'ObjectContent'],
+  ['paramList', [
+    [],
+    ['param'],
+    ['paramList', ',', 'param']
   ]],
-  ['Entry', [
-    ['string', ':', 'Value']
-  ]],
-  ['Array', [
-    ['[', ']'],
-    ['[', 'ArrayContent', ']'],
-  ]],
-  ['ArrayContent', [
-    ['Value'],
-    ['Value', ',', 'ArrayContent'],
+  ['param', [
+    ['id'],
+    ['id', '=', 'string'],
   ]],
 ])
-
-const identical = <T>(x: T) => x
-const semanticRules: ((...args: any[]) => any)[] = [
-  /* Value */
-  identical,
-  (number) => Number(number),
-  identical,
-  identical,
-  () => true,
-  () => false,
-  () => null,
-  /* Object */
-  () => ({}),
-  (_, objectContent) => Object.fromEntries(objectContent),
-  /* ObjectContent */
-  (entry) => [entry],
-  (entry, _, objectContent) => {
-    objectContent.push(entry)
-    return objectContent
-  },
-  /* Entry */
-  (string, _, value) => [string, value],
-  /* Array */
+const fnSSDD: ((...args: any) => any)[] = [
+  /* fn */
+  (paramDecl) => paramDecl,
+  (_, paramDecl) => paramDecl,
+  /* paramDecl */
+  (_, paramList) => paramList,
+  /* paramList */
   () => [],
-  (_, arrayContent) => arrayContent,
-  /* ArrayContent */
-  (value) => [value],
-  (value, _, arrayContent) => {
-    arrayContent.push(value)
-    return arrayContent
+  (param) => [param],
+  (paramList, _, param) => {
+    paramList.push(param)
+    return paramList
   },
+  /* param */
+  (id) => id,
+  (_, __, term) => term,
 ]
+const {lex, sSDD, start} = def
+
+const jsonGrammar = new Grammar(
+  Object.entries(sSDD)
+    .map(([nt, fns]) => {
+      // @ts-ignore
+      return [nt, fns.map(fn => {
+        const fnString = fn.toString()
+        const tokens = fnLexer.parse(fnString)
+        return fnGrammar.sSDD<string[]>(
+          takeUntil(tokens, token => token.type == ')'),
+          fnSSDD
+        )
+      })]
+    }),
+  start
+)
 
 const str = '{"a": 3.1, "b": [true, "code"]}'
-const tokens = new Lexer([
-  Rule.BLANK,
-  Rule.DOUBLE_QUOTED_STRING.renameNew('string'),
-  ',',
-  '{',
-  '}',
-  ':',
-  '[',
-  ']',
-  Rule.NUMBER,
-  'true',
-  'false',
-  'null',
-]).parse(str)
+const tokens = new Lexer(lex).parse(str)
 
-console.log(jsonGrammar.sSDD(tokens, semanticRules))
+console.log(jsonGrammar.sSDD(tokens, Object.values(sSDD).flat() as any))
