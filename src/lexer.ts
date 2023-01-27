@@ -139,4 +139,15 @@ export class Lexer<Raw = string> {
       }
     }
   }
+
+  toString() {
+    return `[${this.rules.map(({regex, type, mapFn, skip}) => {
+      return `{
+        regex: ${regex.toString()},
+        type: ${JSON.stringify(type)},
+        mapFn: ${mapFn.toString().replace(/^\w+\s*(?=\()/, 'function ')},
+        skip: ${skip},
+      }`
+    }).join(',')}]`
+  }
 }

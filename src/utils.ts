@@ -224,7 +224,7 @@ export namespace iter {
     }
   }
 
-  export function* takeWhile<T>(i: Iterable<T>, predicate: predicate<T>) {
+  export function* takeUntil<T>(i: Iterable<T>, predicate: predicate<T>) {
     for (const x of i) {
       yield x
       if (predicate(x)) {

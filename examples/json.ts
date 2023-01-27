@@ -3,7 +3,6 @@ import {Lexer, Rule} from "../src/lexer.js"
 // @ts-ignore
 import def from './json.def.js'
 import {iter} from "../src/utils.js";
-import takeUntil = iter.takeWhile;
 
 const fnLexer = new Lexer([
   Rule.BLANK,
@@ -60,7 +59,7 @@ const jsonGrammar = new Grammar(
         const fnString = fn.toString()
         const tokens = fnLexer.parse(fnString)
         return fnGrammar.sSDD<string[]>(
-          takeUntil(tokens, token => token.type == ')'),
+          iter.takeUntil(tokens, token => token.type == ')'),
           fnSSDD
         )
       })]
@@ -71,4 +70,5 @@ const jsonGrammar = new Grammar(
 const str = '{"a": 3.1, "b": [true, "code"]}'
 const tokens = new Lexer(lex).parse(str)
 
-console.log(jsonGrammar.sSDD(tokens, Object.values(sSDD).flat() as any))
+const ssdd: any[] = Object.values(sSDD).flat()
+console.log(jsonGrammar.sSDD(tokens, ssdd))
