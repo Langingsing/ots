@@ -1,9 +1,10 @@
-import {Lexer, Rule} from "./lexer.js"
+import {Lexer, ReadonlyRule, Rule, RulePair} from "./lexer.js"
 import {Grammar} from "./grammar.js"
 import {iter} from "./utils.js"
-import * as Path from "path"
 import * as fs from "fs";
 import {Accept, Action, Reduce, Shift} from "./action.js"
+import type {Term} from "./types"
+import * as Path from "path";
 
 const fnLexer = new Lexer([
   Rule.BLANK,
@@ -70,22 +71,25 @@ export function transform(def: any) {
       }),
     start
   )
-  const ssdd: any[] = Object.values(sSDD).flat()
   return {
-    prod: Grammar.ruleEntriesToProductions(grammar.ruleEntries),
     lex,
     table: grammar.calcLRTable(),
-    sSDD: ssdd,
+    sSDD: Object.values(sSDD).flat(),
   }
 }
 
-export async function compile(path: string) {
-  const {default: def} = await import(path)
-  const filename = Path.basename(path)
+export function genParser<T = any, Raw = string>(
+  langName: string,
+  def: {
+    lex: (Term | RulePair | ReadonlyRule<Raw>)[],
+    start: string,
+    sSDD: Record<string, ((...args: (Raw | T)[]) => T)[]>,
+  },
+) {
   const {lex, sSDD, table} = transform(def)
-  const langName = filename.substring(0, filename.length - '.def.js'.length)
   const lexer = new Lexer(lex)
-  fs.writeFileSync(langName + '.js',
+  const filename = langName + '.js'
+  fs.writeFileSync(filename,
     `${Action.source()}
 
 ${Reduce.source()}
@@ -149,4 +153,5 @@ export function parse(src) {
     }
 }
 `)
+  console.log(`${langName} parser has been written into ${Path.resolve(filename)}`)
 }

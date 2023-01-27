@@ -1,6 +1,7 @@
 import {Rule} from "../src/lexer.js"
+import {genParser} from "../src/def.js"
 
-export default {
+genParser('json', {
   lex: [
     Rule.BLANK,
     Rule.DOUBLE_QUOTED_STRING.renameNew('string'),
@@ -52,4 +53,4 @@ export default {
       },
     ]
   },
-}
+})
