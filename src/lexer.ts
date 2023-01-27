@@ -36,7 +36,7 @@ export class Rule<Raw = string> {
   }
 
   static escapeRegexChars(str: string) {
-    return str.replace(/(?=[\\.()\[\]{}?+*|$^/])/g, '\\')
+    return str.replace(/(?=[\\.()\[{?+*|$^/])/g, '\\')
   }
 
   readonly regex: RegExp
@@ -100,10 +100,9 @@ export class Rule<Raw = string> {
   }
 
   source() {
-    const regexStr = JSON.stringify(this.regex.source)
     return `{
       type: ${JSON.stringify(this.type)},
-      regex: RegExp('${regexStr.substring(1, regexStr.length - 1)}'${this.regex.flags && `, '${this.regex.flags}'`}),
+      regex: ${this.regex},
       ${this.mapFn
       ? `mapFn: ${this.mapFn.toString().replace(
         /^\w+\s*(?=\()/,
