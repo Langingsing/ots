@@ -145,7 +145,7 @@ export function parse(src) {
         const lastState = stateStack.at(-1);
         const next = rows[lastState].gotoMap.get(nt);
         stateStack.push(next);
-        values.push(ssdd[code](...children, nt));
+        values.push(ssdd[code](...children));
     }
 }
 `)

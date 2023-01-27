@@ -54,7 +54,7 @@ export class Rule<Raw = string> {
   constructor(
     typeOrRule: Term | Rule<Raw>,
     pat?: RegExp | string,
-    readonly mapFn: ((matched: string) => Raw) = x => x as any,
+    readonly mapFn: ((matched: string) => Raw) | undefined = undefined,
     readonly skip = false,
   ) {
     if (typeOrRule instanceof Rule) {
@@ -103,10 +103,13 @@ export class Rule<Raw = string> {
     const regexStr = JSON.stringify(this.regex.source)
     return `{
       type: ${JSON.stringify(this.type)},
-      regex: RegExp('${regexStr.substring(1, regexStr.length - 1)}', '${this.regex.flags}'),
-      mapFn: ${this.mapFn.toString().replace(/^\w+\s*(?=\()/, 'function ')},
-      skip: ${this.skip}
-    }`
+      regex: RegExp('${regexStr.substring(1, regexStr.length - 1)}'${this.regex.flags && `, '${this.regex.flags}'`}),
+      ${this.mapFn
+      ? `mapFn: ${this.mapFn.toString().replace(
+        /^\w+\s*(?=\()/,
+        'function ')
+      },`
+      : ''}${this.skip ? 'skip: true' : ''}}`
   }
 }
 
@@ -138,7 +141,7 @@ export class Lexer<Raw = string> {
         }
         const [matched] = m
         if (!skip) {
-          yield new Token(type, mapFn(matched))
+          yield new Token(type, mapFn?.(matched) ?? matched)
         }
         i += matched.length
         someMatched = true
@@ -170,7 +173,7 @@ export class Lexer<Raw = string> {
                 }
                 const [matched] = m;
                 if (!skip) {
-                    yield { type, raw: mapFn(matched) };
+                    yield { type, raw: mapFn?.(matched) ?? matched };
                 }
                 i += matched.length;
                 someMatched = true;
