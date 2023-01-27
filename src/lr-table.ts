@@ -65,7 +65,7 @@ export class LRTable {
     this.rows = Array.from({length: rowCountHint}, () => new Row())
   }
 
-  static from(tsvContent: string, productions: [NT, Sym[]][]) {
+  static from(tsvContent: string, productions: { nt: NT, seq: Sym[] }[]) {
     const arr2dim = tsvContent
       .split('\n')
       .map(line => {
@@ -101,7 +101,8 @@ export class LRTable {
         switch (cell[0]) {
           case 'R':
             const index = parseInt(cell.substring(1))
-            action = new Reduce(...productions[index], index)
+            const {nt, seq} = productions[index]
+            action = new Reduce(nt, seq, index)
             break
           case 'S':
             action = new Shift(parseInt(cell.substring(1)))

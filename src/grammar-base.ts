@@ -12,7 +12,7 @@ export class GrammarBase {
   end: Term
 
   constructor(
-    private readonly ruleEntries: readonly [NT, Sym[][]][],
+    readonly ruleEntries: readonly [NT, Sym[][]][],
     public start = ruleEntries[0][0]
   ) {
     this.rules = new Map(ruleEntries)
@@ -26,7 +26,7 @@ export class GrammarBase {
 
   static ruleEntriesToProductions(ruleEntries: readonly [NT, Sym[][]][]) {
     return ruleEntries.flatMap(([nt, rhs]) => {
-      return rhs.map(seq => [nt, seq] as [NT, Sym[]])
+      return rhs.map(seq => ({nt, seq}))
     })
   }
 

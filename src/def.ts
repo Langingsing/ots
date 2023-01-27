@@ -2,7 +2,7 @@ import {Lexer, Rule} from "./lexer.js"
 import {Grammar} from "./grammar.js"
 import {iter} from "./utils.js"
 import * as fsAsync from "fs/promises"
-import * as Path from "path";
+import * as Path from "path"
 
 const fnLexer = new Lexer([
   Rule.BLANK,
@@ -71,6 +71,7 @@ export function transform(def: any) {
   )
   const ssdd: any[] = Object.values(sSDD).flat()
   return {
+    prod: Grammar.ruleEntriesToProductions(grammar.ruleEntries),
     lex,
     table: grammar.calcLRTable(),
     sSDD: ssdd,
@@ -80,7 +81,7 @@ export function transform(def: any) {
 export async function compile(path: string) {
   const {default: def} = await import(path)
   const filename = Path.basename(path)
-  const {lex, sSDD, table} = transform(def)
+  const {lex, sSDD, table, prod} = transform(def)
   const dirname = filename.substring(0, filename.length - '.def.js'.length)
 
   try {
@@ -90,6 +91,7 @@ export async function compile(path: string) {
   }
   const lexer = new Lexer(lex)
   return Promise.all([
+    fsAsync.writeFile(Path.join(dirname, 'prod.json'), JSON.stringify(prod)),
     fsAsync.writeFile(Path.join(dirname, 'lex.js'), `export default ${lexer}`),
     fsAsync.writeFile(Path.join(dirname, 'table.tsv'), table.toString()),
     fsAsync.writeFile(Path.join(dirname, 'ssdd.js'), `export default [${sSDD}]`),
