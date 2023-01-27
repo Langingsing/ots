@@ -8,6 +8,8 @@ import * as Path from "path";
 
 const fnLexer = new Lexer([
   Rule.BLANK,
+  Rule.LINE_COMMENT,
+  Rule.BLOCK_COMMENT,
   Rule.ID,
   Rule.STRING,
   ',',
