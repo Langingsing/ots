@@ -98,6 +98,16 @@ export class Rule<Raw = string> {
   renameNew(newType: Term) {
     return this.clone().rename(newType)
   }
+
+  source() {
+    const regexStr = JSON.stringify(this.regex.source)
+    return `{
+      type: ${JSON.stringify(this.type)},
+      regex: RegExp('${regexStr.substring(1, regexStr.length - 1)}', '${this.regex.flags}'),
+      mapFn: ${this.mapFn.toString().replace(/^\w+\s*(?=\()/, 'function ')},
+      skip: ${this.skip}
+    }`
+  }
 }
 
 export type RulePair = Readonly<[Term, RegExp]>
@@ -140,14 +150,7 @@ export class Lexer<Raw = string> {
     }
   }
 
-  toString() {
-    return `[${this.rules.map(({regex, type, mapFn, skip}) => {
-      return `{
-        regex: ${regex.toString()},
-        type: ${JSON.stringify(type)},
-        mapFn: ${mapFn.toString().replace(/^\w+\s*(?=\()/, 'function ')},
-        skip: ${skip},
-      }`
-    }).join(',')}]`
+  source() {
+    return `new Lexer([${this.rules.map(rule => rule.source())}])`
   }
 }

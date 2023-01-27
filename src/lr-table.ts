@@ -51,6 +51,17 @@ export class Row {
       throw new GotoConflict(old, state)
     }
   }
+
+  source() {
+    return `{
+      actionMap: new Map([${[...this.actionMap].map(([term, action]) => {
+      return `[${JSON.stringify(term)}, ${action.source()}]`
+    })}]),
+      gotoMap: new Map([${[...this.gotoMap].map(([nt, state]) => {
+        return `[${JSON.stringify(nt)}, ${state}]`
+      })}])
+    }`
+  }
 }
 
 export class LRTable {
@@ -133,14 +144,14 @@ export class LRTable {
     const getSemanticRule = Array.isArray(semanticRules)
       ? (i: number) => semanticRules[i]
       : () => semanticRules
-    const slrTable = this
+    const {rows} = this
     const stateStack = [0]
     const values: (V | string)[] = []
     // iterate over tokens
     for (const token of tokens) {
       for (; ;) {
         const lastState = stateStack.at(-1)!
-        const action = slrTable.rows[lastState].action(token.type)
+        const action = rows[lastState].action(token.type)
         if (!action) {
           throw 'syntax error'
         }
@@ -160,7 +171,7 @@ export class LRTable {
     // reducing and accepting
     for (; ;) {
       const lastState = stateStack.at(-1)!
-      const action = slrTable.rows[lastState].action(this.end)
+      const action = rows[lastState].action(this.end)
       if (!action) {
         throw 'syntax error'
       }
@@ -179,7 +190,7 @@ export class LRTable {
       stateStack.splice(stateStack.length - seq.length)
       const children = values.splice(values.length - seq.length)
       const lastState = stateStack.at(-1)!
-      const next = slrTable.rows[lastState].goto(nt)!
+      const next = rows[lastState].goto(nt)!
       stateStack.push(next)
 
       const semanticRule = getSemanticRule(code)
@@ -190,12 +201,12 @@ export class LRTable {
   parse(tokens: Iterable<Token>) {
     return this.sSDD<Tree<string>>(tokens, (...args) => {
       const nt = args.pop() as string
-      const chilren = args.map(arg => {
+      const children = args.map(arg => {
         return typeof arg == 'string'
           ? new Tree(arg)
           : arg
       })
-      return new Tree(nt, chilren)
+      return new Tree(nt, children)
     })
   }
 
@@ -217,5 +228,9 @@ export class LRTable {
       }
     }
     return strTbl.toString()
+  }
+
+  rowsSource() {
+    return `[${this.rows.map(row => row.source())}]`
   }
 }

@@ -24,6 +24,8 @@ export abstract class Action {
   }
 
   abstract toString(): string
+
+  abstract source(): string
 }
 
 export class Reduce extends Action {
@@ -44,6 +46,10 @@ export class Reduce extends Action {
   override toString() {
     return 'R' + this.code
   }
+
+  override source() {
+    return `new Reduce(${JSON.stringify(this.nt)}, ${this.seq.length}, ${this.code})`
+  }
 }
 
 export class Shift extends Action {
@@ -62,6 +68,10 @@ export class Shift extends Action {
   override toString() {
     return 'S' + this.next
   }
+
+  override source() {
+    return `new Shift(${this.next})`
+  }
 }
 
 export class Accept extends Action {
@@ -69,5 +79,9 @@ export class Accept extends Action {
 
   override toString() {
     return 'Acc'
+  }
+
+  override source() {
+    return `new Accept()`
   }
 }

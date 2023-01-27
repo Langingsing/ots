@@ -427,7 +427,7 @@ export class GrammarBase {
       .reduce((disjointSetRootToRowIndex, node) => {
         const root = coreGroups.fatherOf(node)
         if (root >= disjointSetRootToRowIndex.length) {
-          disjointSetRootToRowIndex[root] = disjointSetRootToRowIndex.length
+          disjointSetRootToRowIndex[root] = Object.keys(disjointSetRootToRowIndex).length
         }
         return disjointSetRootToRowIndex
       }, [] as number[])
@@ -435,7 +435,7 @@ export class GrammarBase {
       this.terms,
       this.nonTerms,
       this.end,
-      disjointSetRootToRowIndex.length
+      Object.keys(disjointSetRootToRowIndex).length
     )
     for (const fromNode of dfaNodeList) {
       const {data: from} = fromNode
