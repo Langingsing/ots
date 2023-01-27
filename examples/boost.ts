@@ -10,8 +10,8 @@ const lexer = new Lexer([
     }
     return matched
   }),
-  ['|', /\|/],
-  ['->', /->/],
+  '|',
+  '->',
 ])
 
 const grammar = new Grammar([

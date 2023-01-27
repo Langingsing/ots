@@ -15,17 +15,17 @@ export class Rule<Raw = string> {
   static readonly BLANK: ReadonlyRule = new Rule('blank', /\s+/, undefined, true)
   static readonly DOUBLE_QUOTED_STRING: ReadonlyRule = new Rule(
     'doubleQuotedString',
-    /".*?"/,
+    /"(?:[^\\"]|\\.)*"/,
     Rule.dropOneBothEnd
   )
   static readonly SINGLE_QUOTED_STRING: ReadonlyRule = new Rule(
     'singleQuotedString',
-    /'.*?'/,
+    /'(?:[^\\']|\\.)*'/,
     Rule.dropOneBothEnd
   )
   static readonly STRING: ReadonlyRule = new Rule(
     'string',
-    /(?<quote>['"]).*?\k<quote>/,
+    /(?<quote>['"])(?:[^\\]|\\.)*?\k<quote>/,
     Rule.dropOneBothEnd
   )
 
@@ -33,12 +33,16 @@ export class Rule<Raw = string> {
     return matched.substring(1, matched.length - 1)
   }
 
+  static escapeRegexChars(str: string) {
+    return str.replace(/(?=[\\.()\[\]{}?+*|$^/])/g, '\\')
+  }
+
   readonly regex: RegExp
   type: Term
 
   constructor(
     type: Term,
-    pat: RegExp,
+    pat?: RegExp | string,
     mapFn?: ((matched: string) => Raw),
     skip?: boolean,
   )
@@ -47,7 +51,7 @@ export class Rule<Raw = string> {
   )
   constructor(
     typeOrRule: Term | Rule<Raw>,
-    pat?: RegExp,
+    pat?: RegExp | string,
     readonly mapFn: ((matched: string) => Raw) = x => x as any,
     readonly skip = false,
   ) {
@@ -59,10 +63,24 @@ export class Rule<Raw = string> {
       this.skip = skip
     } else {
       this.type = typeOrRule
-      const regexStr = String(pat)
-      const rightSlashPos = regexStr.lastIndexOf('/')
-      const regexBody = regexStr.substring(1, rightSlashPos)
-      this.regex = RegExp(`^(?:${regexBody})`, regexStr.substring(rightSlashPos + 1))
+
+      let regexBody: string
+      let regexFlags = ''
+      switch (typeof pat) {
+        case "undefined":
+          pat = typeOrRule
+        /* fall-through */
+        case "string":
+          regexBody = Rule.escapeRegexChars(pat)
+          break
+        default:
+          const regexStr = String(pat)
+          const rightSlashPos = regexStr.lastIndexOf('/')
+          regexBody = regexStr.substring(1, rightSlashPos)
+          regexFlags = regexStr.substring(rightSlashPos + 1)
+          break
+      }
+      this.regex = RegExp(`^(?:${regexBody})`, regexFlags)
     }
   }
 
@@ -86,9 +104,16 @@ export class Lexer<Raw = string> {
   protected readonly rules: ReadonlyRule<Raw>[]
 
   constructor(
-    rules: readonly (RulePair | ReadonlyRule<Raw>)[],
+    rules: readonly (Term | RulePair | ReadonlyRule<Raw>)[],
   ) {
-    this.rules = rules.map(rule => Array.isArray(rule) ? new Rule(rule[0], rule[1]) : rule as ReadonlyRule<Raw>)
+    this.rules = rules.map(rule => {
+      if (typeof rule === "string") {
+        rule = new Rule(rule)
+      } else if (Array.isArray(rule)) {
+        rule = new Rule(rule[0], rule[1])
+      }
+      return rule as ReadonlyRule<Raw>
+    })
   }
 
   * parse(src: string) {

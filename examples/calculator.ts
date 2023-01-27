@@ -41,13 +41,13 @@ const str = '3 * (4 + 56)'
 const lexer = new Lexer([
   Rule.BLANK,
   Rule.NUM,
-  ['(', /\(/],
-  [')', /\)/],
-  ['+', /\+/],
-  ['-', /-/],
-  ['*', /\*/],
-  ['/', /\//],
-]);
+  '(',
+  ')',
+  '+',
+  '-',
+  '*',
+  '/',
+])
 const tokens = lexer.parse(str)
 const symTree = grammar.parse(tokens)
 

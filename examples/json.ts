@@ -68,16 +68,16 @@ const str = '{"a": 3.1, "b": [true, "code"]}'
 const tokens = new Lexer([
   Rule.BLANK,
   Rule.DOUBLE_QUOTED_STRING.renameNew('string'),
-  [',', /,/],
-  ['{', /\{/],
-  ['}', /}/],
-  [':', /:/],
-  ['[', /\[/],
-  [']', /]/],
+  ',',
+  '{',
+  '}',
+  ':',
+  '[',
+  ']',
   ['number', /-?(?:0|[1-9]\d*)(?:\.\d+)?(?:[Ee][+-]?\d+)?/],
-  ['true', /true/],
-  ['false', /false/],
-  ['null', /null/],
+  'true',
+  'false',
+  'null',
 ]).parse(str)
 
 console.log(jsonGrammar.sSDD(tokens, semanticRules))
