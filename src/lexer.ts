@@ -27,7 +27,7 @@ export class Rule<Raw = string> {
   )
   static readonly STRING: ReadonlyRule = new Rule(
     'string',
-    /(?<quote>['"])(?:\\?.)*?\k<quote>/,
+    /(?<quote>['"])(?:[^\\]|\\.)*?\k<quote>/,
     Rule.dropOneBothEnd
   )
   static readonly LINE_COMMENT: ReadonlyRule = new Rule(
