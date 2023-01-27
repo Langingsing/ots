@@ -26,6 +26,17 @@ export abstract class Action {
   abstract toString(): string
 
   abstract source(): string
+
+  static source() {
+    return `class Action {
+    isReduce() {
+        return this.type == 0
+    }
+    isShift() {
+        return this.type == 1 
+    }
+}`
+  }
 }
 
 export class Reduce extends Action {
@@ -50,6 +61,21 @@ export class Reduce extends Action {
   override source() {
     return `new Reduce(${JSON.stringify(this.nt)}, ${this.seq.length}, ${this.code})`
   }
+
+  static source() {
+    return `class Reduce extends Action {
+    nt;
+    seqLen;
+    code;
+    type = 0
+    constructor(nt, seqLen, code) {
+        super();
+        this.nt = nt;
+        this.seqLen = seqLen;
+        this.code = code;
+    }
+}`
+  }
 }
 
 export class Shift extends Action {
@@ -72,6 +98,17 @@ export class Shift extends Action {
   override source() {
     return `new Shift(${this.next})`
   }
+
+  static source() {
+    return `class Shift extends Action {
+    next;
+    type = 1
+    constructor(next) {
+        super();
+        this.next = next;
+    }
+}`
+  }
 }
 
 export class Accept extends Action {
@@ -83,5 +120,11 @@ export class Accept extends Action {
 
   override source() {
     return `new Accept()`
+  }
+
+  static source() {
+    return `class Accept extends Action {
+    type = 2
+}`
   }
 }

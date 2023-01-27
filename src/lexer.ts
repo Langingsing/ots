@@ -153,4 +153,34 @@ export class Lexer<Raw = string> {
   source() {
     return `new Lexer([${this.rules.map(rule => rule.source())}])`
   }
+
+  static source() {
+    return `class Lexer {
+    rules;
+    constructor(rules) {
+        this.rules = rules
+    }
+    *parse(src) {
+        for (let i = 0; i < src.length;) {
+            let someMatched = false;
+            for (const { type, regex, skip, mapFn } of this.rules) {
+                const m = src.substring(i).match(regex);
+                if (!m) {
+                    continue;
+                }
+                const [matched] = m;
+                if (!skip) {
+                    yield { type, raw: mapFn(matched) };
+                }
+                i += matched.length;
+                someMatched = true;
+                break;
+            }
+            if (!someMatched) {
+                throw \`unrecognized '\${src[i]}' at index \${i}\`;
+            }
+        }
+    }
+}`
+  }
 }

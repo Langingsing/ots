@@ -57,9 +57,13 @@ export class Row {
       actionMap: new Map([${[...this.actionMap].map(([term, action]) => {
       return `[${JSON.stringify(term)}, ${action.source()}]`
     })}]),
-      gotoMap: new Map([${[...this.gotoMap].map(([nt, state]) => {
-        return `[${JSON.stringify(nt)}, ${state}]`
-      })}])
+      gotoMap: ${
+      this.gotoMap.size == 0
+        ? 'emptyMap'
+        : `new Map([${[...this.gotoMap].map(([nt, state]) => {
+          return `[${JSON.stringify(nt)}, ${state}]`
+        })}])`
+    }
     }`
   }
 }

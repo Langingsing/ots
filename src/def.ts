@@ -3,6 +3,7 @@ import {Grammar} from "./grammar.js"
 import {iter} from "./utils.js"
 import * as Path from "path"
 import * as fs from "fs";
+import {Accept, Action, Reduce, Shift} from "./action.js"
 
 const fnLexer = new Lexer([
   Rule.BLANK,
@@ -85,70 +86,18 @@ export async function compile(path: string) {
   const langName = filename.substring(0, filename.length - '.def.js'.length)
   const lexer = new Lexer(lex)
   fs.writeFileSync(langName + '.js',
-    `class Action {
-    isReduce() {
-        return this.type == 0 /* EAction.Reduce */;
-    }
-    isShift() {
-        return this.type == 1 /* EAction.Shift */;
-    }
-}
+    `${Action.source()}
 
-class Reduce extends Action {
-    nt;
-    seqLen;
-    code;
-    type = 0
-    constructor(nt, seqLen, code) {
-        super();
-        this.nt = nt;
-        this.seqLen = seqLen;
-        this.code = code;
-    }
-}
+${Reduce.source()}
 
-class Shift extends Action {
-    next;
-    type = 1
-    constructor(next) {
-        super();
-        this.next = next;
-    }
-}
+${Shift.source()}
 
-class Accept extends Action {
-    type = 2
-}
+${Accept.source()}
 
-class Lexer {
-    rules;
-    constructor(rules) {
-        this.rules = rules
-    }
-    *parse(src) {
-        for (let i = 0; i < src.length;) {
-            let someMatched = false;
-            for (const { type, regex, skip, mapFn } of this.rules) {
-                const m = src.substring(i).match(regex);
-                if (!m) {
-                    continue;
-                }
-                const [matched] = m;
-                if (!skip) {
-                    yield { type, raw: mapFn(matched) };
-                }
-                i += matched.length;
-                someMatched = true;
-                break;
-            }
-            if (!someMatched) {
-                throw \`unrecognized '\${src[i]}' at index \${i}\`;
-            }
-        }
-    }
-}
+${Lexer.source()}
 
 const lexer = ${lexer.source()}
+const emptyMap = new Map()
 const rows = ${table.rowsSource()}
 const ssdd = [${sSDD}]
 
